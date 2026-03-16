@@ -3,764 +3,132 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>一日店長 One Day Manager (Firebase版)</title>
+  <title>24H超商一日店長(執行力) PoC版</title>
   
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
 
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { 
-      width: 100%; 
-      height: 100%; 
-      height: 100dvh; 
-      overflow: hidden; 
-      position: fixed;
-      background: #0f172a;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
-      background: #0f172a;
-      touch-action: none;
-      -webkit-user-select: none;
-      user-select: none;
-      font-size: 18px;
-    }
-    #game-container { 
-      position: relative; 
-      width: 100%; 
-      height: 100%; 
-      height: 100dvh;
-      max-width: 500px;  
-      margin: 0 auto;
-      overflow: hidden;
-      background: #1e293b;
-    }
+    html, body { width: 100%; height: 100%; height: 100dvh; overflow: hidden; position: fixed; background: #0f172a; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif; touch-action: none; -webkit-user-select: none; user-select: none; font-size: 18px; }
+    #game-container { position: relative; width: 100%; height: 100%; height: 100dvh; max-width: 500px; margin: 0 auto; overflow: hidden; background: #1e293b; }
     
-    #top-ui {
-      position: absolute; top: 0; left: 0; right: 0;
-      padding: 8px 12px;
-      padding-top: max(8px, env(safe-area-inset-top));
-      padding-right: 70px; 
-      background: rgba(0,0,0,0.9);
-      display: flex; justify-content: space-between; align-items: center;
-      z-index: 100;
-    }
-    #exit-btn {
-      position: absolute; top: 50%; right: 10px;
-      transform: translateY(-50%);
-      background: rgba(239, 68, 68, 0.9); border: none; border-radius: 8px;
-      padding: 6px 10px; font-size: 13px; color: white; cursor: pointer;
-      z-index: 101; font-weight: bold;
-    }
-    .stat-box {
-      display: flex; align-items: center; gap: 6px;
-      background: rgba(255,255,255,0.1);
-      padding: 8px 14px; border-radius: 16px;
-      font-size: 19px; font-weight: bold; color: white;
-    }
+    #top-ui { position: absolute; top: 0; left: 0; right: 0; padding: 8px 12px; padding-top: max(8px, env(safe-area-inset-top)); padding-right: 70px; background: rgba(0,0,0,0.9); display: flex; justify-content: space-between; align-items: center; z-index: 100; }
+    #exit-btn { position: absolute; top: 50%; right: 10px; transform: translateY(-50%); background: rgba(239, 68, 68, 0.9); border: none; border-radius: 8px; padding: 6px 10px; font-size: 13px; color: white; cursor: pointer; z-index: 101; font-weight: bold; }
+    .stat-box { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.1); padding: 8px 14px; border-radius: 16px; font-size: 19px; font-weight: bold; color: white; }
     .stat-box .icon { font-size: 20px; }
     .stat-box .value { color: #fbbf24; }
     
-    #current-task-bar {
-      position: absolute; top: 62px; left: 8px; right: 8px;
-      background: rgba(30,41,59,0.95); border-radius: 12px;
-      padding: 10px 14px; z-index: 90; border: 2px solid #475569;
-      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-    }
+    #current-task-bar { position: absolute; top: 62px; left: 8px; right: 8px; background: rgba(30,41,59,0.95); border-radius: 12px; padding: 10px 14px; z-index: 90; border: 2px solid #475569; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     #current-task-bar .task-name { color: #fbbf24; font-size: 18px; font-weight: bold; }
     #current-task-bar .task-steps { display: flex; gap: 6px; flex-wrap: wrap; }
     .mini-step { background: #374151; color: #9ca3af; padding: 6px 10px; border-radius: 8px; font-size: 17px; }
     .mini-step.current { background: #2563eb; color: white; }
     .mini-step.done { background: #166534; color: #86efac; }
     
-    #game-canvas { 
-      position: absolute; 
-      top: 0; 
-      left: 0; 
-      width: 100%; 
-      height: 100%;
-      image-rendering: -webkit-optimize-contrast;
-      image-rendering: crisp-edges;
-    }
+    #game-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; transition: filter 0.3s; }
     
-    .action-panel {
-      position: absolute; bottom: 50%; left: 50%; transform: translate(-50%, 50%);
-      background: rgba(30,41,59,0.98); border-radius: 18px; padding: 16px;
-      z-index: 150; border: 3px solid #f59e0b;
-      width: 94%; max-width: 360px; display: none;
-      max-height: 85vh; overflow-y: auto;
-    }
+    .action-panel { position: absolute; bottom: 50%; left: 50%; transform: translate(-50%, 50%); background: rgba(30,41,59,0.98); border-radius: 18px; padding: 16px; z-index: 150; border: 3px solid #f59e0b; width: 94%; max-width: 360px; display: none; max-height: 85vh; overflow-y: auto; }
     .action-panel.show { display: block; }
     .action-panel h3 { color: #fbbf24; font-size: 20px; text-align: center; margin-bottom: 12px; }
     .panel-order { background: rgba(245,158,11,0.2); border-radius: 10px; padding: 10px; text-align: center; margin-bottom: 12px; color: #fbbf24; font-size: 18px; font-weight: bold; }
-    .panel-queue { 
-      background: rgba(59,130,246,0.15); border-radius: 10px; padding: 8px 10px; 
-      margin-bottom: 8px; font-size: 15px; color: #93c5fd;
-    }
-    .panel-queue .queue-title { font-weight: bold; margin-bottom: 4px; color: #60a5fa; }
-    .panel-queue .queue-list { display: flex; flex-wrap: wrap; gap: 4px; }
-    .panel-queue .queue-item { 
-      background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 6px; 
-      font-size: 14px; white-space: nowrap;
-    }
-    .panel-queue .queue-item.current { background: #f59e0b; color: #000; font-weight: bold; }
-    .panel-queue .queue-item.waiting { background: rgba(34,197,94,0.3); color: #86efac; }
     .panel-options { margin-bottom: 10px; }
     .panel-options label { color: #9ca3af; font-size: 16px; display: block; margin-bottom: 4px; }
     .panel-options .btn-group { display: flex; gap: 6px; }
-    .panel-btn {
-      flex: 1; padding: 12px 8px; font-size: 17px; font-weight: bold;
-      border: none; border-radius: 10px; cursor: pointer;
-      background: #374151; color: white; transition: all 0.15s;
-    }
+    .panel-btn { flex: 1; padding: 12px 8px; font-size: 17px; font-weight: bold; border: none; border-radius: 10px; cursor: pointer; background: #374151; color: white; transition: all 0.15s; }
     .panel-btn.selected { background: #f59e0b; color: black; }
     .panel-btn:active { transform: scale(0.95); }
-    .panel-confirm {
-      width: 100%; padding: 14px; font-size: 19px; font-weight: bold;
-      border: none; border-radius: 12px; cursor: pointer;
-      background: #22c55e; color: white; margin-top: 8px;
-    }
+    .panel-confirm { width: 100%; padding: 14px; font-size: 19px; font-weight: bold; border: none; border-radius: 12px; cursor: pointer; background: #22c55e; color: white; margin-top: 8px; }
     .panel-confirm:disabled { background: #4b5563; color: #9ca3af; }
-    .panel-cancel {
-      width: 100%; padding: 12px; font-size: 17px;
-      border: none; border-radius: 10px; cursor: pointer;
-      background: #6b7280; color: white; margin-top: 6px;
-    }
+    .panel-cancel { width: 100%; padding: 12px; font-size: 17px; border: none; border-radius: 10px; cursor: pointer; background: #6b7280; color: white; margin-top: 6px; }
     
-    #package-panel .package-grid {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px;
-    }
-    .package-btn {
-      padding: 14px 6px; font-size: 18px; font-weight: bold; font-family: monospace;
-      border: none; border-radius: 10px; cursor: pointer;
-      background: #fef3c7; color: #92400e;
-    }
+    #package-panel .package-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+    .package-btn { padding: 14px 6px; font-size: 18px; font-weight: bold; font-family: monospace; border: none; border-radius: 10px; cursor: pointer; background: #fef3c7; color: #92400e; }
     .package-btn:active { background: #fbbf24; transform: scale(0.95); }
     
-    @media (max-height: 600px) {
-      .action-panel { padding: 12px; }
-      .action-panel h3 { font-size: 18px; margin-bottom: 8px; }
-      .panel-order { padding: 8px; margin-bottom: 8px; font-size: 16px; }
-      .panel-queue { padding: 6px 8px; margin-bottom: 6px; font-size: 13px; }
-      .panel-queue .queue-item { padding: 3px 6px; font-size: 12px; }
-      .panel-options { margin-bottom: 8px; }
-      .panel-options label { font-size: 14px; margin-bottom: 3px; }
-      .panel-btn { padding: 10px 6px; font-size: 15px; }
-      .panel-confirm { padding: 12px; font-size: 17px; margin-top: 6px; }
-      .panel-cancel { padding: 10px; font-size: 15px; margin-top: 4px; }
-      #package-panel .package-grid { gap: 6px; margin-bottom: 8px; }
-      .package-btn { padding: 12px 4px; font-size: 16px; }
-    }
-    
-    #scan-panel {
-      position: absolute; bottom: 50%; left: 50%; transform: translate(-50%, 50%);
-      background: rgba(30,41,59,0.98); border-radius: 18px; padding: 16px;
-      z-index: 150; border: 3px solid #22c55e;
-      width: 94%; max-width: 380px; display: none;
-      max-height: 90vh; overflow-y: auto;
-    }
+    #scan-panel { position: absolute; bottom: 50%; left: 50%; transform: translate(-50%, 50%); background: rgba(30,41,59,0.98); border-radius: 18px; padding: 16px; z-index: 150; border: 3px solid #22c55e; width: 94%; max-width: 380px; display: none; }
     #scan-panel.show { display: block; }
     #scan-panel h3 { color: #22c55e; font-size: 20px; text-align: center; margin-bottom: 12px; }
-    
     .scan-items { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 14px; min-height: 70px; }
-    .scan-item {
-      width: 64px; height: 64px; background: #fef3c7; border-radius: 12px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 32px; cursor: pointer; transition: all 0.15s;
-      border: 3px solid #fbbf24; position: relative;
-    }
-    .scan-item:hover { transform: scale(1.1); }
-    .scan-item:active { transform: scale(0.95); }
-    .scan-item.scanned {
-      background: #d1fae5; border-color: #22c55e; opacity: 0.6; pointer-events: none;
-    }
-    .scan-item.scanned::after {
-      content: '✓'; position: absolute; top: -6px; right: -6px;
-      background: #22c55e; color: white; width: 20px; height: 20px;
-      border-radius: 50%; font-size: 14px;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .scan-item.idle-hint {
-      animation: idleGlow 1s ease-in-out infinite;
-      box-shadow: 0 0 15px 5px rgba(251, 191, 36, 0.6);
-    }
-    @keyframes idleGlow {
-      0%, 100% { box-shadow: 0 0 10px 3px rgba(251, 191, 36, 0.4); }
-      50% { box-shadow: 0 0 20px 8px rgba(251, 191, 36, 0.8); }
-    }
-    .idle-finger {
-      position: absolute;
-      bottom: -20px;
-      right: -20px;
-      left: auto;
-      transform: rotate(-45deg);
-      font-size: 24px;
-      animation: fingerBounce 0.8s ease-in-out infinite;
-      pointer-events: none;
-      z-index: 10;
-    }
-    @keyframes fingerBounce {
-      0%, 100% { transform: rotate(-45deg) translate(0, 0); }
-      50% { transform: rotate(-45deg) translate(-4px, -4px); }
-    }
-    .scan-area {
-      background: linear-gradient(135deg, #1e293b, #334155);
-      border-radius: 12px; padding: 14px; text-align: center;
-      border: 2px dashed #64748b; margin-bottom: 12px;
-    }
+    .scan-item { width: 64px; height: 64px; background: #fef3c7; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 32px; cursor: pointer; border: 3px solid #fbbf24; position: relative; }
+    .scan-item.scanned { background: #d1fae5; border-color: #22c55e; opacity: 0.6; pointer-events: none; }
+    .scan-area { background: linear-gradient(135deg, #1e293b, #334155); border-radius: 12px; padding: 14px; text-align: center; border: 2px dashed #64748b; margin-bottom: 12px; }
     .scan-area .scanner { font-size: 40px; margin-bottom: 8px; }
     .scan-area .hint { color: #9ca3af; font-size: 16px; }
-    .scan-area .scanned-item { font-size: 48px; animation: scanPop 0.3s ease-out; }
-    .scan-area.scanning { border-color: #22c55e; background: rgba(34, 197, 94, 0.1); }
-    @keyframes scanPop { 0% { transform: scale(0.5); opacity: 0; } 50% { transform: scale(1.2); } 100% { transform: scale(1); opacity: 1; } }
-    .scan-progress { display: flex; justify-content: center; gap: 8px; margin-bottom: 12px; }
-    .scan-progress .dot { width: 14px; height: 14px; border-radius: 50%; background: #374151; }
-    .scan-progress .dot.done { background: #22c55e; }
-    .scan-progress .dot.current { background: #fbbf24; animation: pulse 0.5s infinite; }
-    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.3); } }
     .scan-total { text-align: center; color: white; font-size: 20px; font-weight: bold; margin-bottom: 10px; }
     .scan-total span { color: #22c55e; font-size: 26px; }
+
+    #restock-panel { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 200; padding: 16px; display: flex; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; backdrop-filter: blur(3px); }
+    #restock-panel.show { opacity: 1; pointer-events: auto; }
+    .restock-box { background: linear-gradient(135deg, #1e293b, #334155); border-radius: 18px; padding: 16px; width: 95%; max-width: 380px; border: 3px solid #22c55e; display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+    .restock-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .restock-title { font-size: 20px; font-weight: bold; color: #22c55e; animation: pulseRed 1s infinite alternate; }
+    @keyframes pulseRed { 0% { color: #22c55e; } 100% { color: #fbbf24; } }
+    .restock-scores { display: flex; gap: 8px; }
+    .restock-score-box { padding: 6px 12px; border-radius: 18px; font-size: 18px; font-weight: bold; display: flex; align-items: center; gap: 4px; }
+    .restock-score-box.correct { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+    .restock-score-box.wrong { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    .restock-items { position: relative; height: 320px; background: rgba(0,0,0,0.5); border-radius: 12px; overflow: hidden; flex-shrink: 0; }
+    .restock-item { position: absolute; width: 75px; height: 75px; background: linear-gradient(135deg, #fef3c7, #fde68a); border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; border: 3px solid #fbbf24; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transform: translate(-50%, -50%) scale(0); opacity: 0; }
+    .restock-item.pop-in { animation: popIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+    @keyframes popIn { 0% { transform: translate(-50%, -50%) scale(0); opacity: 0; } 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+    .restock-item .item-icon { font-size: 34px; }
+    .restock-item.expired { background: linear-gradient(135deg, #fecaca, #fca5a5); border-color: #ef4444; }
+    .restock-item.expired .expired-mark { font-size: 12px; color: #dc2626; font-weight: bold; margin-top: 2px; }
+    .restock-item.correct { animation: correctPop 0.3s ease-out forwards; }
+    @keyframes correctPop { 50% { transform: translate(-50%, -50%) scale(1.2); } 100% { transform: translate(-50%, -50%) scale(0); opacity: 0; } }
+    .restock-item.wrong { animation: wrongShake 0.3s ease-out forwards; }
+    @keyframes wrongShake { 20% { transform: translate(calc(-50% + 8px), -50%); } 40% { transform: translate(calc(-50% - 8px), -50%); } 100% { transform: translate(-50%, -50%) scale(0); opacity: 0; } }
     
-    @media (max-height: 600px) {
-      #scan-panel { padding: 12px; }
-      #scan-panel h3 { font-size: 18px; margin-bottom: 8px; }
-      .scan-area { padding: 10px; margin-bottom: 8px; }
-      .scan-area .scanner { font-size: 32px; margin-bottom: 4px; }
-      .scan-area .hint { font-size: 14px; }
-      .scan-area .scanned-item { font-size: 40px; }
-      .scan-items { gap: 8px; margin-bottom: 10px; min-height: 60px; }
-      .scan-item { width: 56px; height: 56px; font-size: 28px; border-radius: 10px; }
-      .scan-progress { gap: 6px; margin-bottom: 8px; }
-      .scan-progress .dot { width: 12px; height: 12px; }
-      .scan-total { font-size: 18px; margin-bottom: 8px; }
-      .scan-total span { font-size: 22px; }
-      .idle-finger { font-size: 20px; bottom: -24px; }
-    }
-    
-    #restock-panel {
-      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.85);
-      z-index: 200; padding: 16px;
-      display: flex; justify-content: center; align-items: center;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-    }
-    #restock-panel.show {
-      opacity: 1;
-      pointer-events: auto;
-    }
-    #restock-panel.show .restock-box {
-      animation: slideInRight 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-    }
-    
-    @keyframes slideInRight {
-      0% { transform: translateX(120%); opacity: 0; }
-      100% { transform: translateX(0); opacity: 1; }
-    }
-    
-    .restock-box {
-      background: linear-gradient(135deg, #1e293b, #334155);
-      border-radius: 18px; padding: 16px;
-      width: 95%; max-width: 380px;
-      border: 3px solid #22c55e;
-      transform: translateX(120%);
-      max-height: 90vh;
-      display: flex;
-      flex-direction: column;
-    }
-    
-    .restock-header {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 10px;
-    }
-    .restock-title {
-      font-size: 20px; font-weight: bold; color: #22c55e;
-    }
-    .restock-scores {
-      display: flex; gap: 8px;
-    }
-    .restock-score-box {
-      padding: 6px 12px; border-radius: 18px;
-      font-size: 18px; font-weight: bold;
-      display: flex; align-items: center; gap: 4px;
-    }
-    .restock-score-box.correct {
-      background: rgba(34, 197, 94, 0.2);
-      color: #22c55e;
-    }
-    .restock-score-box.wrong {
-      background: rgba(239, 68, 68, 0.2);
-      color: #ef4444;
-    }
-    
-    .restock-rule {
-      display: flex; justify-content: center; gap: 16px;
-      margin-bottom: 10px; font-size: 15px;
-    }
-    .rule-go { color: #86efac; }
-    .rule-nogo { color: #fca5a5; }
-    
-    .restock-time-bar {
-      height: 8px; background: #374151; border-radius: 4px;
-      margin-bottom: 12px; overflow: hidden;
-    }
-    .restock-time-fill {
-      height: 100%; background: linear-gradient(90deg, #22c55e, #86efac);
-      border-radius: 4px;
-      transition: width 0.05s linear;
-      width: 100%;
-    }
-    
-    .restock-items {
-      position: relative;
-      height: 280px;
-      background: rgba(0,0,0,0.3);
-      border-radius: 12px;
-      overflow: hidden;
-      flex-shrink: 0;
-    }
-    
-    .restock-item {
-      position: absolute;
-      width: 80px; height: 80px;
-      background: linear-gradient(135deg, #fef3c7, #fde68a);
-      border-radius: 14px;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      cursor: pointer;
-      border: 3px solid #fbbf24;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      transform: translate(-50%, -50%) scale(0);
-      opacity: 0;
-      transition: none;
-    }
-    .restock-item.pop-in {
-      animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-    }
-    @keyframes popIn {
-      0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-      100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-    }
-    .restock-item:active {
-      transform: translate(-50%, -50%) scale(0.9) !important;
-    }
-    .restock-item .item-icon {
-      font-size: 36px;
-    }
-    .restock-item.expired {
-      background: linear-gradient(135deg, #fecaca, #fca5a5);
-      border-color: #ef4444;
-    }
-    .restock-item.expired .expired-mark {
-      font-size: 12px; color: #dc2626; font-weight: bold;
-      margin-top: 2px;
-    }
-    
-    @media (max-height: 650px) {
-      .restock-box { padding: 12px; }
-      .restock-header { margin-bottom: 8px; }
-      .restock-title { font-size: 18px; }
-      .restock-score-box { padding: 5px 10px; font-size: 16px; }
-      .restock-rule { margin-bottom: 8px; font-size: 13px; gap: 12px; }
-      .restock-time-bar { height: 6px; margin-bottom: 8px; }
-      .restock-items { height: 220px; }
-      .restock-item { width: 68px; height: 68px; }
-      .restock-item .item-icon { font-size: 30px; }
-      .restock-item.expired .expired-mark { font-size: 10px; }
-    }
-    
-    @media (max-height: 550px) {
-      .restock-items { height: 180px; }
-      .restock-item { width: 60px; height: 60px; }
-      .restock-item .item-icon { font-size: 26px; }
-    }
-    .restock-item.correct {
-      animation: correctPop 0.3s ease-out forwards;
-    }
-    @keyframes correctPop {
-      0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-      50% { transform: translate(-50%, -50%) scale(1.2); }
-      100% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-    }
-    .restock-item.wrong {
-      animation: wrongShake 0.3s ease-out forwards;
-    }
-    @keyframes wrongShake {
-      0%, 100% { transform: translate(-50%, -50%) scale(1); }
-      20% { transform: translate(calc(-50% + 8px), -50%) scale(1); }
-      40% { transform: translate(calc(-50% - 8px), -50%) scale(1); }
-      60% { transform: translate(calc(-50% + 4px), -50%) scale(1); }
-      80% { transform: translate(calc(-50% - 4px), -50%) scale(0.8); opacity: 0.5; }
-      100% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-    }
-    .restock-item.fade-out-ok {
-      animation: fadeOutOk 0.4s ease-out forwards;
-    }
-    @keyframes fadeOutOk {
-      0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-      100% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
-    }
-    .restock-item.missed {
-      animation: missedFade 0.4s ease-out forwards;
-    }
-    @keyframes missedFade {
-      0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-      50% { transform: translate(-50%, -50%) scale(1.1); border-color: #ef4444; }
-      100% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
-    }
-    
-    .restock-feedback {
-      position: absolute;
-      font-size: 20px; font-weight: bold;
-      pointer-events: none;
-      animation: feedbackPop 0.6s ease-out forwards;
-      transform: translate(-50%, -50%);
-      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-    }
-    @keyframes feedbackPop {
-      0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
-      50% { transform: translate(-50%, -100%) scale(1.2); opacity: 1; }
-      100% { transform: translate(-50%, -130%) scale(1); opacity: 0; }
-    }
-    
-    .restock-coin {
-      position: absolute;
-      font-size: 20px;
-      pointer-events: none;
-      animation: coinFly 0.6s ease-out forwards;
-    }
-    @keyframes coinFly {
-      0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-      100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.5); opacity: 0; }
-    }
-    
-    #toast {
-      position: absolute; top: 120px; left: 16px; right: 16px;
-      background: rgba(239,68,68,0.95); color: white;
-      padding: 14px 20px; border-radius: 14px;
-      font-size: 20px; font-weight: bold; z-index: 180;
-      opacity: 0; 
-      transition: opacity 0.2s ease, background-color 0.2s ease;
-      pointer-events: none; text-align: center;
-      will-change: opacity;
-      backface-visibility: hidden;
-      transform: translateZ(0);
-    }
+    #toast { position: absolute; top: 120px; left: 16px; right: 16px; background: rgba(239,68,68,0.95); color: white; padding: 14px 20px; border-radius: 14px; font-size: 20px; font-weight: bold; z-index: 180; opacity: 0; transition: opacity 0.2s; pointer-events: none; text-align: center; transform: translateZ(0); }
     #toast.show { opacity: 1; }
     #toast.success { background: rgba(34,197,94,0.95); }
     
-    #result-screen, #start-screen {
-      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-      display: none; flex-direction: column;
-      justify-content: center; align-items: center;
-      z-index: 300; 
-      padding: 24px; 
-      text-align: center;
-      overflow-y: auto;
-    }
+    #result-screen, #start-screen { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 300; padding: 24px; text-align: center; overflow-y: auto; }
     #result-screen { background: linear-gradient(135deg, #1a1a2e, #16213e); }
     #start-screen { background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460); }
     #result-screen.show, #start-screen:not(.hide) { display: flex; }
     #start-screen.hide { display: none; }
     
-    /* 姓名與年紀的輸入框樣式 (針對深色UI調整) */
-    .input-group {
-      margin: 10px 0 25px 0;
-      display: flex; flex-direction: column; align-items: center; gap: 12px;
-      width: 100%;
-    }
-    .input-field {
-      padding: 14px 20px; font-size: 18px; border-radius: 14px;
-      border: 2px solid rgba(255,255,255,0.2); width: 85%; max-width: 300px;
-      text-align: center; outline: none; transition: all 0.3s;
-      background: rgba(255,255,255,0.1); color: white;
-      font-family: inherit;
-    }
-    .input-field::placeholder { color: rgba(255,255,255,0.5); }
+    .input-group { margin: 10px 0 25px 0; display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
+    .input-field { padding: 14px 20px; font-size: 18px; border-radius: 14px; border: 2px solid rgba(255,255,255,0.2); width: 85%; max-width: 300px; text-align: center; outline: none; background: rgba(255,255,255,0.1); color: white; }
     .input-field:focus { border-color: #fbbf24; background: rgba(255,255,255,0.2); }
     
-    /* Firebase上傳狀態的樣式 */
-    .upload-status {
-      margin-bottom: 15px; font-size: 14px; color: #fbbf24;
-      background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px;
-      width: 100%; max-width: 300px; text-align: center;
-      transition: all 0.3s;
-    }
-
+    .upload-status { margin-bottom: 15px; font-size: 14px; color: #fbbf24; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; width: 100%; max-width: 300px; text-align: center; }
     .result-title { font-size: 26px; color: #fbbf24; margin-bottom: 14px; }
-    .result-grade { font-size: 64px; font-weight: 900; margin-bottom: 6px; }
+    .result-stats { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; width: 100%; max-width: 320px; text-align: left; background: rgba(0,0,0,0.3); padding: 16px; border-radius: 12px; }
+    .result-stats .metric-row { display: flex; justify-content: space-between; font-size: 15px; color: #d1d5db; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px; }
+    .result-stats .metric-row span:last-child { font-weight: bold; color: #fbbf24; }
     
-    .result-stats { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; margin-bottom: 12px; width: 100%; max-width: 300px; }
-    .result-stat { background: rgba(255,255,255,0.1); padding: 10px; border-radius: 10px; text-align: center; }
-    .result-stat .value { font-size: 22px; font-weight: bold; color: #fbbf24; }
-    .result-stat .label { font-size: 14px; color: #9ca3af; }
-    
-    .result-restock {
-      background: rgba(34, 197, 94, 0.15);
-      border: 2px solid rgba(34, 197, 94, 0.3);
-      border-radius: 12px;
-      padding: 10px 14px;
-      margin-bottom: 10px;
-      width: 100%; max-width: 300px;
-    }
-    .restock-result-title {
-      font-size: 16px; color: #86efac;
-      margin-bottom: 6px; font-weight: bold;
-    }
-    .restock-result-row {
-      display: flex; justify-content: space-between;
-      font-size: 15px; color: #d1d5db;
-      margin-bottom: 4px;
-    }
-    .restock-result-row .bonus { color: #22c55e; font-weight: bold; }
-    .restock-result-row .penalty { color: #ef4444; font-weight: bold; }
-    
-    .result-total {
-      display: flex; justify-content: space-between; align-items: center;
-      background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.2));
-      border: 2px solid #fbbf24;
-      border-radius: 12px;
-      padding: 12px 18px;
-      margin-bottom: 16px;
-      width: 100%; max-width: 300px;
-      font-size: 18px; font-weight: bold; color: #fbbf24;
-    }
-    .result-total span:last-child {
-      font-size: 24px;
-    }
-    
-    .play-again-btn, .start-btn {
-      padding: 14px 36px; font-size: 20px; font-weight: bold;
-      background: linear-gradient(135deg, #f59e0b, #d97706);
-      color: white; border: none; border-radius: 24px; cursor: pointer;
-      flex-shrink: 0; transition: opacity 0.3s;
-    }
-    
-    @media (max-height: 700px) {
-      #result-screen { padding: 16px; }
-      .result-title { font-size: 22px; margin-bottom: 10px; }
-      .result-grade { font-size: 52px; margin-bottom: 4px; }
-      .result-stats { gap: 8px; margin-bottom: 8px; max-width: 280px; }
-      .result-stat { padding: 8px; }
-      .result-stat .value { font-size: 18px; }
-      .result-stat .label { font-size: 12px; }
-      .result-restock { padding: 8px 12px; margin-bottom: 8px; max-width: 280px; }
-      .restock-result-title { font-size: 14px; margin-bottom: 4px; }
-      .restock-result-row { font-size: 13px; margin-bottom: 2px; }
-      .result-total { padding: 10px 14px; margin-bottom: 12px; font-size: 16px; max-width: 280px; }
-      .result-total span:last-child { font-size: 20px; }
-      .play-again-btn { padding: 12px 28px; font-size: 18px; }
-    }
-    
-    @media (max-height: 600px) {
-      #result-screen { padding: 12px; overflow-y: auto; }
-      .result-title { font-size: 18px; margin-bottom: 6px; }
-      .result-grade { font-size: 42px; margin-bottom: 2px; }
-      .result-stats { gap: 6px; margin-bottom: 6px; }
-      .result-stat { padding: 6px; }
-      .result-stat .value { font-size: 16px; }
-      .result-stat .label { font-size: 11px; }
-      .result-restock { padding: 6px 10px; margin-bottom: 6px; }
-      .result-total { padding: 8px 12px; margin-bottom: 8px; font-size: 14px; }
-      .result-total span:last-child { font-size: 18px; }
-      .play-again-btn { padding: 10px 24px; font-size: 16px; }
-    }
-    
-    .db-toggle-btn {
-      position: absolute;
-      bottom: 16px;
-      right: 16px;
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: rgba(100, 100, 100, 0.5);
-      border: none;
-      font-size: 18px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0.6;
-      transition: opacity 0.2s;
-    }
-    .db-toggle-btn:hover { opacity: 1; }
-    
-    #db-output-container {
-      display: none;
-      position: absolute;
-      bottom: 70px;
-      right: 16px;
-      background: rgba(0,0,0,0.95);
-      border-radius: 12px;
-      padding: 12px;
-      max-width: 320px;
-      max-height: 300px;
-      text-align: left;
-      border: 1px solid #4b5563;
-    }
-    #db-output-container.show { display: block; }
-    .db-output-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-    .db-output-title {
-      font-size: 12px;
-      color: #9ca3af;
-    }
-    .db-close-btn {
-      background: none;
-      border: none;
-      color: #9ca3af;
-      font-size: 16px;
-      cursor: pointer;
-      padding: 4px 8px;
-    }
-    .db-close-btn:hover { color: white; }
-    #db-output {
-      font-family: monospace;
-      font-size: 10px;
-      color: #86efac;
-      background: rgba(0,0,0,0.3);
-      padding: 8px;
-      border-radius: 4px;
-      overflow: auto;
-      white-space: pre-wrap;
-      word-break: break-all;
-      margin: 0;
-      max-height: 220px;
-    }
-    
+    .start-btn { padding: 14px 36px; font-size: 20px; font-weight: bold; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; border-radius: 24px; cursor: pointer; transition: opacity 0.3s; }
     .start-icon { font-size: 70px; margin-bottom: 14px; }
-    .start-title { font-size: 32px; font-weight: 900; color: white; margin-bottom: 8px; }
-    .start-subtitle { font-size: 21px; color: #fbbf24; margin-bottom: 16px; }
+    .start-title { font-size: 28px; font-weight: 900; color: white; margin-bottom: 8px; line-height: 1.2; }
+    .start-subtitle { font-size: 18px; color: #9ca3af; margin-bottom: 16px; }
     
-    #tutorial-screen {
-      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-      display: none; flex-direction: column;
-      justify-content: center; align-items: center;
-      z-index: 300; padding: 24px; text-align: center;
-      background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
-    }
-    #tutorial-screen.show { display: flex; }
-    .tutorial-back-btn {
-      position: absolute; top: 20px; left: 20px;
-      background: rgba(255,255,255,0.1); border: none; border-radius: 50%;
-      width: 44px; height: 44px; font-size: 20px; color: white; cursor: pointer;
-    }
-    
-    .start-info {
-      background: rgba(255,255,255,0.1); border-radius: 14px;
-      padding: 18px; margin-bottom: 24px; text-align: left; max-width: 340px;
-    }
-    .start-info p { color: #d1d5db; font-size: 18px; margin-bottom: 7px; display: flex; gap: 10px; align-items: center; }
-    .start-info p span { color: #fbbf24; min-width: 24px; font-size: 20px; }
-    .start-section-title {
-      color: #60a5fa !important;
-      font-weight: bold;
-      font-size: 17px !important;
-      margin-top: 12px !important;
-      margin-bottom: 8px !important;
-      border-bottom: 1px solid rgba(96,165,250,0.3);
-      padding-bottom: 5px;
-    }
-    .start-info p.start-section-title:first-child { margin-top: 0 !important; }
-    
-    #restock-intro-screen {
-      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-      display: none; flex-direction: column;
-      justify-content: center; align-items: center;
-      z-index: 250; padding: 24px; text-align: center;
-      background: rgba(0,0,0,0.9);
-    }
-    #restock-intro-screen.show { display: flex; }
-    
-    .restock-intro-box {
-      background: linear-gradient(135deg, #1e293b, #334155);
-      border-radius: 22px; padding: 28px;
-      width: 95%; max-width: 380px;
-      border: 3px solid #22c55e;
-    }
-    .restock-intro-icon { font-size: 60px; margin-bottom: 12px; }
-    .restock-intro-title { font-size: 28px; font-weight: bold; color: #22c55e; margin-bottom: 8px; }
-    .restock-intro-subtitle { font-size: 18px; color: #9ca3af; margin-bottom: 24px; }
-    
-    .restock-intro-rules {
-      display: flex; flex-direction: column; gap: 14px;
-      margin-bottom: 28px;
-    }
-    .restock-rule-item {
-      display: flex; align-items: center; gap: 14px;
-      padding: 14px 16px; border-radius: 14px;
-      text-align: left;
-    }
-    .restock-rule-item.good { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.3); }
-    .restock-rule-item.bad { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); }
-    .restock-rule-item.info { background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); }
-    .restock-rule-item .rule-icon { font-size: 34px; }
-    .restock-rule-item .rule-content { flex: 1; }
-    .restock-rule-item .rule-title { font-size: 19px; font-weight: bold; color: white; margin-bottom: 4px; }
-    .restock-rule-item.good .rule-title { color: #86efac; }
-    .restock-rule-item.bad .rule-title { color: #fca5a5; }
-    .restock-rule-item.info .rule-title { color: #93c5fd; }
-    .restock-rule-item .rule-desc { font-size: 17px; color: #9ca3af; }
-    
-    .restock-start-btn {
-      width: 100%; padding: 18px 28px;
-      font-size: 22px; font-weight: bold;
-      background: linear-gradient(135deg, #22c55e, #16a34a);
-      color: white; border: none; border-radius: 14px;
-      cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
-      box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
-    }
-    .restock-start-btn:active { transform: scale(0.97); }
-    
-    #rotate-notice {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: #1a1a2e;
-      z-index: 9999;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      color: white;
-      text-align: center;
-      padding: 24px;
-    }
-    #rotate-notice .icon { font-size: 70px; margin-bottom: 24px; animation: rotate-hint 2s ease-in-out infinite; }
-    #rotate-notice .text { font-size: 24px; font-weight: bold; }
-    #rotate-notice .sub { font-size: 18px; color: #9ca3af; margin-top: 12px; }
-    @keyframes rotate-hint {
-      0%, 100% { transform: rotate(0deg); }
-      25% { transform: rotate(-15deg); }
-      75% { transform: rotate(15deg); }
-    }
-    
-    @media (orientation: landscape) and (max-height: 500px) {
-      #rotate-notice { display: flex; }
-      #game-container { display: none; }
-    }
+    /* DB Viewer */
+    .db-toggle-btn { position: absolute; bottom: 16px; right: 16px; width: 44px; height: 44px; border-radius: 50%; background: rgba(100, 100, 100, 0.5); border: none; font-size: 18px; cursor: pointer; opacity: 0.6; }
+    #db-output-container { display: none; position: absolute; bottom: 70px; right: 16px; background: rgba(0,0,0,0.95); border-radius: 12px; padding: 12px; max-width: 320px; max-height: 300px; text-align: left; border: 1px solid #4b5563; z-index: 500;}
+    #db-output-container.show { display: block; }
+    .db-close-btn { background: none; border: none; color: white; float: right; cursor: pointer; }
+    #db-output { font-family: monospace; font-size: 10px; color: #86efac; max-height: 250px; overflow: auto; white-space: pre-wrap; }
+
+    #rotate-notice { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #1a1a2e; z-index: 9999; flex-direction: column; justify-content: center; align-items: center; color: white; }
+    @media (orientation: landscape) and (max-height: 500px) { #rotate-notice { display: flex; } #game-container { display: none; } }
   </style>
 </head>
 <body>
 <div id="rotate-notice">
-  <div class="icon">📱</div>
-  <div class="text">請將手機轉為直式</div>
-  <div class="sub">Please rotate your device to portrait mode</div>
+  <div style="font-size:70px; margin-bottom:20px;">📱</div>
+  <h2>請將手機轉為直式</h2>
 </div>
 
 <div id="game-container">
   <canvas id="game-canvas"></canvas>
   
   <div id="top-ui">
-    <div class="stat-box"><span class="icon">📋</span><span id="order-progress">0/10</span></div>
-    <div class="stat-box"><span class="icon">⏱️</span><span id="time-display">0:00</span></div>
+    <div class="stat-box"><span class="icon">⏱️</span><span id="time-display">0:60</span></div>
     <div class="stat-box" id="coin-display"><span class="icon">💰</span><span class="value" id="coin-value">0</span></div>
-    <button id="exit-btn" onclick="Game.exitToHome()">✖</button>
   </div>
   
   <div id="current-task-bar">
@@ -772,17 +140,13 @@
     <h3>☕ 咖啡機</h3>
     <div class="panel-order" id="coffee-order-display"></div>
     <div class="panel-options"><label>杯型</label><div class="btn-group" id="coffee-size-btns">
-      <button class="panel-btn" data-v="中杯">中杯</button>
-      <button class="panel-btn" data-v="大杯">大杯</button>
+      <button class="panel-btn" data-v="中杯">中杯</button><button class="panel-btn" data-v="大杯">大杯</button>
     </div></div>
     <div class="panel-options"><label>飲品</label><div class="btn-group" id="coffee-type-btns">
-      <button class="panel-btn" data-v="美式">☕美式</button>
-      <button class="panel-btn" data-v="拿鐵">🥛拿鐵</button>
+      <button class="panel-btn" data-v="美式">☕美式</button><button class="panel-btn" data-v="拿鐵">🥛拿鐵</button>
     </div></div>
     <div class="panel-options"><label>溫度</label><div class="btn-group" id="coffee-temp-btns">
-      <button class="panel-btn" data-v="熱">🔥熱</button>
-      <button class="panel-btn" data-v="溫">👌溫</button>
-      <button class="panel-btn" data-v="冰">🧊冰</button>
+      <button class="panel-btn" data-v="熱">🔥熱</button><button class="panel-btn" data-v="冰">🧊冰</button>
     </div></div>
     <button class="panel-confirm" id="coffee-confirm" disabled>✓ 開始製作</button>
     <button class="panel-cancel" onclick="Panels.hide()">取消</button>
@@ -792,9 +156,7 @@
     <h3>🔥 微波爐</h3>
     <div class="panel-order" id="microwave-order-display"></div>
     <div class="panel-options"><label>加熱時間</label><div class="btn-group" id="microwave-time-btns">
-      <button class="panel-btn" data-v="1">🥪 1分</button>
-      <button class="panel-btn" data-v="2">🍙 2分</button>
-      <button class="panel-btn" data-v="3">🍱 3分</button>
+      <button class="panel-btn" data-v="1">🥪 1分</button><button class="panel-btn" data-v="2">🍙 2分</button><button class="panel-btn" data-v="3">🍱 3分</button>
     </div></div>
     <button class="panel-confirm" id="microwave-confirm" disabled>✓ 開始加熱</button>
     <button class="panel-cancel" onclick="Panels.hide()">取消</button>
@@ -809,37 +171,19 @@
   
   <div id="scan-panel">
     <h3>🛒 掃描商品結帳</h3>
-    <div class="scan-progress" id="scan-progress"></div>
-    <div class="scan-area" id="scan-area">
-      <div class="scanner">📱</div>
-      <div class="hint">👆 點擊所有商品即可完成掃描</div>
-    </div>
+    <div class="scan-area" id="scan-area"><div class="scanner">📱</div><div class="hint">👆 點擊所有商品</div></div>
     <div class="scan-items" id="scan-items"></div>
-    <div class="scan-total">合計：<span id="scan-total">$0</span></div>
     <button class="panel-confirm" id="scan-confirm" disabled>💳 結帳完成</button>
   </div>
 
   <div id="restock-panel">
     <div class="restock-box">
       <div class="restock-header">
-        <span class="restock-title">📦 快速補貨！</span>
+        <span class="restock-title">⚠️ 突發補貨！</span>
         <div class="restock-scores">
-          <div class="restock-score-box correct">
-            <span>✓</span>
-            <span id="restock-score">0</span>
-          </div>
-          <div class="restock-score-box wrong">
-            <span>✗</span>
-            <span id="restock-mistakes">0</span>
-          </div>
+          <div class="restock-score-box correct"><span id="restock-score">0</span></div>
+          <div class="restock-score-box wrong"><span id="restock-mistakes">0</span></div>
         </div>
-      </div>
-      <div class="restock-rule">
-        <span class="rule-go">👆 點擊商品 +8</span>
-        <span class="rule-nogo">🚫 避開過期品</span>
-      </div>
-      <div class="restock-time-bar">
-        <div class="restock-time-fill" id="restock-time"></div>
       </div>
       <div class="restock-items" id="restock-items"></div>
     </div>
@@ -848,113 +192,42 @@
   <div id="toast"></div>
   
   <div id="result-screen">
-    <div class="result-title">🏪 今日營業結束</div>
-    <div class="result-grade" id="result-grade">S</div>
+    <div class="result-title">🏪 測驗結束</div>
     
     <div class="result-stats">
-      <div class="result-stat"><div class="value" id="result-accuracy">0%</div><div class="label">正確率</div></div>
-      <div class="result-stat"><div class="value" id="result-time">0:00</div><div class="label">耗時</div></div>
-      <div class="result-stat"><div class="value" id="result-orders">0</div><div class="label">訂單</div></div>
-      <div class="result-stat"><div class="value" id="result-coins">0</div><div class="label">營業金幣</div></div>
-    </div>
-    <div class="result-restock" id="result-restock">
-      <div class="restock-result-title">📦 補貨獎勵</div>
-      <div class="restock-result-row">
-        <span>正確上架</span>
-        <span id="result-restock-bonus" class="bonus">+0</span>
-      </div>
-      <div class="restock-result-row">
-        <span>點到過期品</span>
-        <span id="result-restock-penalty" class="penalty">-0</span>
-      </div>
-    </div>
-    <div class="result-total">
-      <span>總金幣</span>
-      <span id="result-total-coins">0</span>
+      <div class="metric-row"><span>總營業額 (完成單數)</span><span id="res-orders">0</span></div>
+      <div class="metric-row"><span>處理反應時間 (ms)</span><span id="res-rt">0</span></div>
+      <div class="metric-row"><span>衝動性錯誤 (干擾點擊)</span><span id="res-commission">0</span></div>
+      <div class="metric-row"><span>規則重置延遲 (ms)</span><span id="res-reconfig">0</span></div>
+      <div class="metric-row"><span>微觀停頓/無效操作</span><span id="res-redundant">0</span></div>
     </div>
     
     <div id="upload-status" class="upload-status" style="display:none;"></div>
-    
-    <button id="retry-btn" class="play-again-btn" onclick="Game.restart()">再玩一次 🔄</button>
+    <button id="retry-btn" class="start-btn" onclick="Game.restart()">重新測驗 🔄</button>
 
-    <button class="db-toggle-btn" id="db-toggle-btn" onclick="toggleDbOutput()">📤</button>
+    <button class="db-toggle-btn" onclick="document.getElementById('db-output-container').classList.toggle('show')">📤</button>
     <div id="db-output-container">
-      <div class="db-output-header">
-        <span class="db-output-title">📤 DB Output</span>
-        <button class="db-close-btn" onclick="toggleDbOutput()">✕</button>
-      </div>
+      <button class="db-close-btn" onclick="this.parentElement.classList.remove('show')">✕</button>
+      <div style="font-size:12px;color:#9ca3af;margin-bottom:5px;">Payload (JSON)</div>
       <pre id="db-output"></pre>
     </div>
   </div>
   
   <div id="start-screen">
     <div class="start-icon">🏪</div>
-    <div class="start-title">一日店長</div>
-    <div class="start-subtitle">One Day Manager</div>
+    <div class="start-title">24H超商一日店長<br><span style="font-size: 20px; color:#fbbf24;">(執行力 PoC 版)</span></div>
+    <div class="start-subtitle">60秒高壓壓力測試</div>
     
     <div class="input-group">
-      <input type="text" id="playerName" class="input-field" placeholder="請輸入您的姓名">
-      <input type="number" id="playerAge" class="input-field" placeholder="請輸入您的年齡 (歲)">
+      <input type="text" id="playerName" class="input-field" placeholder="請輸入姓名">
+      <input type="number" id="playerAge" class="input-field" placeholder="請輸入年齡 (歲)">
     </div>
-
     <button class="start-btn" onclick="initGameSession()">開始挑戰 🚀</button>
-    <button class="start-btn" style="margin-top: 16px; background: linear-gradient(135deg, #3b82f6, #2563eb);" onclick="document.getElementById('tutorial-screen').classList.add('show')">遊戲說明 📖</button>
-  </div>
-  
-  <div id="tutorial-screen">
-    <div class="start-title">遊戲說明</div>
-    <div class="start-info">
-      <p class="start-section-title">🎯 遊戲目標</p>
-      <p><span>📋</span>完成 10 位顧客的訂單</p>
-      <p><span>💰</span>正確操作可賺取金幣</p>
-      <p class="start-section-title">🕹️ 操作方式</p>
-      <p><span>👆</span>點擊畫面移動店員</p>
-      <p><span>💳</span>點收銀台接單/結帳</p>
-      <p class="start-section-title">📦 訂單類型</p>
-      <p><span>☕</span>咖啡：結帳→咖啡機製作→送餐</p>
-      <p><span>🍱</span>便當：結帳→微波爐加熱→送餐</p>
-      <p><span>🛒</span>商品：在收銀台掃描結帳</p>
-      <p><span>📦</span>包裹：接單→找包裹→回櫃台結帳</p>
-    </div>
-    <button class="start-btn" onclick="document.getElementById('tutorial-screen').classList.remove('show'); initGameSession();">開始挑戰 🚀</button>
-    <button class="start-btn" style="margin-top: 12px; background: linear-gradient(135deg, #6b7280, #4b5563);" onclick="document.getElementById('tutorial-screen').classList.remove('show')">返回首頁</button>
-  </div>
-
-  <div id="restock-intro-screen">
-    <div class="restock-intro-box">
-      <div class="restock-intro-icon">📦</div>
-      <div class="restock-intro-title">快速補貨時間！</div>
-      <div class="restock-intro-subtitle">營業結束前的最後挑戰</div>
-      <div class="restock-intro-rules">
-        <div class="restock-rule-item good">
-          <span class="rule-icon">✅</span>
-          <div class="rule-content">
-            <div class="rule-title">點擊正常商品</div>
-            <div class="rule-desc">每個 +8 金幣</div>
-          </div>
-        </div>
-        <div class="restock-rule-item bad">
-          <span class="rule-icon">⚠️</span>
-          <div class="rule-content">
-            <div class="rule-title">避開過期品（紅底）</div>
-            <div class="rule-desc">點到 -10 金幣！</div>
-          </div>
-        </div>
-        <div class="restock-rule-item info">
-          <span class="rule-icon">⏱️</span>
-          <div class="rule-content">
-            <div class="rule-title">限時 10 秒</div>
-            <div class="rule-desc">商品會自動消失，把握時機！</div>
-          </div>
-        </div>
-      </div>
-      <button class="restock-start-btn" onclick="RestockGame.startGame()">準備好了！開始補貨 📦</button>
-    </div>
   </div>
 </div>
 
 <script>
-// --- Firebase 初始設定 (使用你提供的金鑰) ---
+// --- Firebase ---
 const firebaseConfig = {
   apiKey: "AIzaSyB6wcFs5gSiNDCSweKcEzgRpbIAAb5I3Vo",
   authDomain: "smart-squat-health.firebaseapp.com",
@@ -963,1755 +236,511 @@ const firebaseConfig = {
   messagingSenderId: "475970550783",
   appId: "1:475970550783:web:2d7dcacb2e55b562eb05ca"
 };
-firebase.initializeApp(firebaseConfig);
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
 const db = firebase.firestore();
 
-// 全域使用者資訊
 let userInfo = { name: "", age: 0 };
 
-// 處理使用者輸入並開始遊戲
 function initGameSession() {
-    const nameInput = document.getElementById('playerName').value.trim();
-    const ageInput = document.getElementById('playerAge').value.trim();
-
-    if (!nameInput || !ageInput) {
-        alert("請完整輸入姓名與年齡，才能開始挑戰喔！");
-        return;
-    }
-
-    userInfo.name = nameInput;
-    userInfo.age = parseInt(ageInput);
-    
+    const name = document.getElementById('playerName').value.trim();
+    const age = document.getElementById('playerAge').value.trim();
+    if (!name || !age) { alert("請輸入姓名與年齡！"); return; }
+    userInfo.name = name; userInfo.age = parseInt(age);
     Game.start();
 }
 
+// --- 生物標記追蹤器 (Biomarker Engine) ---
+class BiomarkerTracker {
+  constructor() {
+    this.reset();
+  }
+  reset() {
+    this.phase1StartTime = 0;
+    this.phase2StartTime = 0;
+    this.lastActionTime = 0;
+    this.metrics = {
+      redundantClicks: 0,         // 無效操作/狂點
+      interClickIntervals: [],    // 連續點擊微觀停頓
+      planningLatencies: [],      // 首動時間
+      taskSwitchRTs: [],          // 任務切換成本
+      ruleReconfigLatency: null,  // Phase 2 首動時間 (重點)
+      commissionErrors: 0,        // Go/No-Go 錯誤
+      hitRTs: []                  // Go/No-Go 正確反應
+    };
+    this.currentTaskType = null;
+    this.activeTaskStarts = {}; 
+  }
 
-const FONT = {
-  MIN: 17, SMALL: 18, NORMAL: 19, MEDIUM: 20, LARGE: 21, XLARGE: 23,
-  STATION_LABEL: 17, BUBBLE: 17, PROGRESS: 18, FLOATING: 19,
-};
+  markPhase1Start() { this.phase1StartTime = performance.now(); this.lastActionTime = this.phase1StartTime; }
+  markPhase2Start() { this.phase2StartTime = performance.now(); }
 
+  // 記錄新任務出現 (為了計算首動時間)
+  taskAppeared(taskId, type) {
+    this.activeTaskStarts[taskId] = performance.now();
+  }
+
+  // 記錄玩家點擊面板或特定區域的微觀時間差
+  recordInteraction(isRedundant = false) {
+    const now = performance.now();
+    if (isRedundant) {
+      this.metrics.redundantClicks++;
+    } else {
+      const interval = now - this.lastActionTime;
+      if (interval < 3000) { // 過長的不算連續點擊
+        this.metrics.interClickIntervals.push(interval);
+      }
+    }
+    this.lastActionTime = now;
+  }
+
+  // 處理主線任務(結帳/製作等)
+  recordMainTaskAction(taskId, type) {
+    const now = performance.now();
+    // 計算首動時間
+    if (this.activeTaskStarts[taskId]) {
+      this.metrics.planningLatencies.push(now - this.activeTaskStarts[taskId]);
+      delete this.activeTaskStarts[taskId];
+    }
+    // 計算任務切換耗損
+    if (this.currentTaskType && this.currentTaskType !== type) {
+      this.metrics.taskSwitchRTs.push(now - this.lastActionTime);
+    }
+    this.currentTaskType = type;
+    this.lastActionTime = now;
+  }
+
+  // Phase 2: 抑制力與規則重置測試
+  recordRestockTap(isCorrect) {
+    const now = performance.now();
+    if (this.metrics.ruleReconfigLatency === null) {
+      // 擷取第一筆動作：從 45 秒轉場瞬間到首次點擊的延遲
+      this.metrics.ruleReconfigLatency = now - this.phase2StartTime;
+    }
+
+    if (isCorrect) {
+      this.metrics.hitRTs.push(now - this.lastActionTime);
+    } else {
+      this.metrics.commissionErrors++;
+    }
+    this.lastActionTime = now;
+  }
+
+  getAverage(arr) { return arr.length ? arr.reduce((a, b) => a + b) / arr.length : 0; }
+
+  exportClinicalData() {
+    return {
+      planning_latency_avg_ms: Math.round(this.getAverage(this.metrics.planningLatencies)),
+      inter_click_interval_avg_ms: Math.round(this.getAverage(this.metrics.interClickIntervals)),
+      switching_cost_avg_ms: Math.round(this.getAverage(this.metrics.taskSwitchRTs)),
+      rule_reconfig_latency_ms: this.metrics.ruleReconfigLatency ? Math.round(this.metrics.ruleReconfigLatency) : -1,
+      restock_hit_rt_avg_ms: Math.round(this.getAverage(this.metrics.hitRTs)),
+      commission_errors: this.metrics.commissionErrors,
+      redundant_clicks: this.metrics.redundantClicks
+    };
+  }
+}
+
+const Tracker = new BiomarkerTracker();
+
+// --- 簡化的核心 Game Logic ---
 const Game = {
   canvas: null, ctx: null, width: 0, height: 0, dpr: 1,
-  state: 'menu', coins: 0, totalOrders: 10, completedOrders: 0,
-  sessionId: null,  
-  correctSteps: 0, totalSteps: 0, startTime: 0,
+  state: 'menu', coins: 0, completedOrders: 0, timerInterval: null,
+  totalTime: 60, timeLeft: 60, phase: 1, // Phase 1(主線), Phase 2(補貨)
   
-  scoringParams: {
-    W_a: 0.6,               
-    W_t: 0.4,               
-    TargetTime: 90,         
-    DifficultyMultiplier: 1.5,  
-    S_ceiling: 1.5          
-  },
-  player: null, stations: [], customers: [], particles: [], floatingTexts: [],
-  
-  coffeeProgress: 0, coffeeRunning: false, coffeeTask: null, coffeeReady: false,
-  coffeeQueue: [],  
-  coffeeReadyEmoji: '☕',  
-  microwaveProgress: 0, microwaveRunning: false, microwaveTask: null, microwaveReady: false,
-  microwaveQueue: [],  
-  microwaveReadyEmoji: '🍱',  
-  playerHolding: null,
-  toastTimeout: null,  
-  currentTask: null,  
-  
-  lastActionTime: 0,      
-  idleHintTarget: null,   
-  idleHintActive: false,  
-  IDLE_TIMEOUT: 8000,    
-  
-  TOP_UI_HEIGHT: 110,
-  
-  layout: {
-    machineY: 0, packageY: 0, counterY: 0,
-    staffAreaBottom: 0, customerStartY: 0, waitAreaY: 0, stationSize: 0
-  },
-  
+  player: null, stations: [], customers: [],
+  coffeeProgress: 0, coffeeRunning: false, coffeeReady: false, coffeeTask: null,
+  microwaveProgress: 0, microwaveRunning: false, microwaveReady: false, microwaveTask: null,
+  playerHolding: null, currentTask: null,
+  layout: { counterY: 0, machineY: 0, packageY: 0 },
+
   init() {
-    this.canvas = document.getElementById('game-canvas');
-    this.ctx = this.canvas.getContext('2d');
+    this.canvas = document.getElementById('game-canvas'); this.ctx = this.canvas.getContext('2d');
     this.dpr = window.devicePixelRatio || 1;
-    this.resize();
-    window.addEventListener('resize', () => this.resize());
+    this.resize(); window.addEventListener('resize', () => this.resize());
     this.canvas.addEventListener('click', e => this.handleClick(e));
-    this.canvas.addEventListener('touchstart', e => { e.preventDefault(); this.handleClick(e.touches[0]); }, {passive:false});
-    Panels.init();
-    ScanPanel.init();
+    Panels.init(); ScanPanel.init();
     this.loop();
   },
   
   resize() {
     const container = document.getElementById('game-container');
-    this.width = container.clientWidth;
-    this.height = container.clientHeight;
-    
-    this.canvas.width = this.width * this.dpr;
-    this.canvas.height = this.height * this.dpr;
-    
-    this.canvas.style.width = this.width + 'px';
-    this.canvas.style.height = this.height + 'px';
-    
+    this.width = container.clientWidth; this.height = container.clientHeight;
+    this.canvas.width = this.width * this.dpr; this.canvas.height = this.height * this.dpr;
+    this.canvas.style.width = this.width + 'px'; this.canvas.style.height = this.height + 'px';
     this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    
-    const h = this.height;
-    const w = this.width;
-    
-    const minGameHeight = 500;
-    const effectiveHeight = Math.max(h, minGameHeight);
-    
-    const availableHeight = effectiveHeight - this.TOP_UI_HEIGHT;
-    
-    const isShortScreen = h < 600;
-    const workAreaRatio = isShortScreen ? 0.62 : 0.67;  
-    const customerAreaRatio = 1 - workAreaRatio;
-    
-    this.layout.counterY = this.TOP_UI_HEIGHT + availableHeight * workAreaRatio;
-    this.layout.counterY += 20; 
-    
-    this.layout.counterY = Math.min(this.layout.counterY, h - 120);
-    
-    const workAreaHeight = this.layout.counterY - this.TOP_UI_HEIGHT;
-    const TOAST_CLEARANCE = 70;  
-    const machineMinY = this.TOP_UI_HEIGHT + TOAST_CLEARANCE + 40;  
-    this.layout.machineY = Math.max(machineMinY, this.TOP_UI_HEIGHT + workAreaHeight * 0.45);
-    this.layout.packageY = this.layout.machineY;  
-    this.layout.staffAreaBottom = this.layout.counterY - 10;
-    
-    const customerAreaTop = this.layout.counterY + 15;
-    const customerAreaBottom = Math.min(h - 10, this.layout.counterY + availableHeight * customerAreaRatio);
-    const customerAreaHeight = customerAreaBottom - customerAreaTop;
-    
-    this.layout.customerStartY = customerAreaTop + customerAreaHeight * 0.35;  
-    this.layout.waitAreaY = customerAreaTop + customerAreaHeight * 0.20;       
-    
-    this.layout.waitAreaY = Math.min(this.layout.waitAreaY, h - 80);
-    this.layout.customerStartY = Math.min(this.layout.customerStartY, h - 50);
-    
-    this.layout.stationSize = Math.max(28, Math.min(w * 0.09, workAreaHeight * 0.13, 40));
-    
-    if (this.state === 'playing') this.setupStations();
+    this.layout.counterY = this.height * 0.55;
+    this.layout.machineY = this.height * 0.35;
+    this.layout.packageY = this.height * 0.35;
+    if(this.state === 'playing') this.setupStations();
   },
   
   start() {
     document.getElementById('start-screen').classList.add('hide');
-    const uploadStatus = document.getElementById('upload-status');
-    if(uploadStatus) uploadStatus.style.display = 'none';
-
-    this.state = 'playing';
-    this.coins = 0; this.completedOrders = 0;
-    this.correctSteps = 0; this.totalSteps = 0;
-    this.startTime = Date.now();
-    this.particles = []; this.floatingTexts = [];
-    this.customers = [];
-    this.coffeeProgress = 0; this.coffeeRunning = false; this.coffeeTask = null; this.coffeeReady = false;
-    this.coffeeQueue = [];
-    this.microwaveProgress = 0; this.microwaveRunning = false; this.microwaveTask = null; this.microwaveReady = false;
-    this.microwaveQueue = [];
-    this.playerHolding = null;
-    this.currentTask = null;  
-    this.restockResult = null;  
-    
-    this.lastActionTime = Date.now();
-    this.idleHintTarget = null;
-    this.idleHintActive = false;
-    
-    this.setupStations();
-    this.player = new Player(this.width / 2, this.layout.counterY - 55);
-    TaskManager.init();
-    this.updateUI();
-    setTimeout(() => CustomerManager.spawnNext(), 300);
-  },
-  
-  restart() {
     document.getElementById('result-screen').classList.remove('show');
-    this.start();
+    this.state = 'playing'; this.phase = 1; this.timeLeft = this.totalTime;
+    this.coins = 0; this.completedOrders = 0;
+    this.customers = []; this.coffeeRunning = false; this.microwaveRunning = false;
+    this.playerHolding = null; this.currentTask = null;
+    
+    Tracker.reset();
+    Tracker.markPhase1Start();
+
+    this.setupStations();
+    this.player = new Player(this.width / 2, this.layout.counterY - 40);
+    TaskManager.init();
+    this.updateTimeDisplay();
+    document.getElementById('coin-value').textContent = 0;
+    
+    // 啟動主時鐘 (固定 60 秒)
+    if(this.timerInterval) clearInterval(this.timerInterval);
+    this.timerInterval = setInterval(() => {
+      this.timeLeft--;
+      this.updateTimeDisplay();
+      
+      // 第 45 秒 (剩餘 15 秒) 觸發無縫轉場
+      if (this.timeLeft === 15 && this.phase === 1) {
+        this.triggerPhase2();
+      }
+      
+      if (this.timeLeft <= 0) {
+        clearInterval(this.timerInterval);
+        this.endGame();
+      }
+    }, 1000);
+    
+    setTimeout(() => CustomerManager.spawnNext(), 500);
+  },
+
+  restart() { this.start(); },
+
+  triggerPhase2() {
+    this.phase = 2;
+    Panels.hide();
+    if (ScanPanel.isOpen) ScanPanel.complete(true); // 強制關閉
+    
+    // 凍結背景交互
+    this.canvas.style.filter = 'blur(4px) brightness(0.6)';
+    document.getElementById('current-task-bar').style.display = 'none';
+    
+    // 無提示直接啟動 RestockGame
+    RestockGame.startGameSeamlessly();
+    Tracker.markPhase2Start();
   },
   
-  exitToHome() {
-    if (this.gameTimer) clearInterval(this.gameTimer);
-    this.running = false;
-    document.getElementById('start-screen').classList.remove('hide');
+  updateTimeDisplay() {
+    document.getElementById('time-display').textContent = `0:${this.timeLeft.toString().padStart(2,'0')}`;
   },
-  
+
   setupStations() {
-    const w = this.width, L = this.layout, sz = L.stationSize;
+    const w = this.width, L = this.layout, sz = 35;
     this.stations = [
-      new Station('counter', w * 0.5, L.counterY - 18, sz, '💳', '收銀台'),
-      new Station('coffee', w * 0.22, L.machineY, sz, '☕', '咖啡機'),
-      new Station('microwave', w * 0.78, L.machineY, sz, '🔥', '微波爐'),
-      new Station('packages', w * 0.5, L.packageY, sz, '📦', '包裹架'),
+      new Station('counter', w * 0.5, L.counterY - 10, sz, '💳', '收銀台'),
+      new Station('coffee', w * 0.25, L.machineY, sz, '☕', '咖啡機'),
+      new Station('microwave', w * 0.75, L.machineY, sz, '🔥', '微波爐'),
+      new Station('packages', w * 0.5, L.packageY - 20, sz, '📦', '包裹架'),
     ];
-    this.waitAreaLeft = { x: w * 0.2, y: L.waitAreaY };
-    this.waitAreaRight = { x: w * 0.8, y: L.waitAreaY };
-    this.playerIdlePos = { x: w * 0.5, y: L.counterY - 55 };
   },
-  
-  isPlayerNearStation(station, threshold = 60) {
-    return Math.hypot(this.player.x - station.x, this.player.y - station.y) < threshold;
-  },
-  
+
   handleClick(e) {
-    if (this.state !== 'playing' || Panels.isOpen || ScanPanel.isOpen || RestockGame.isOpen) return;
+    if (this.state !== 'playing' || this.phase === 2 || Panels.isOpen || ScanPanel.isOpen) {
+      Tracker.recordInteraction(true); // 點在無效區間
+      return; 
+    }
     const rect = this.canvas.getBoundingClientRect();
     const x = e.clientX - rect.left, y = e.clientY - rect.top;
     
-    this.lastActionTime = Date.now();
-    this.idleHintActive = false;
-    this.idleHintTarget = null;
-    
-    if (this.playerHolding) {
-      if (this.playerHolding.type === 'coffee' && Math.hypot(x - this.waitAreaLeft.x, y - this.waitAreaLeft.y) < 50) {
-        this.player.moveTo(this.waitAreaLeft.x, this.layout.counterY - 25, () => this.deliverToWaitArea('coffee'));
-        return;
-      }
-      if (this.playerHolding.type === 'bento' && Math.hypot(x - this.waitAreaRight.x, y - this.waitAreaRight.y) < 50) {
-        this.player.moveTo(this.waitAreaRight.x, this.layout.counterY - 25, () => this.deliverToWaitArea('bento'));
-        return;
-      }
-    }
-    
-    const playerTopLimit = this.layout.machineY + this.layout.stationSize + 20;
-    
     for (const s of this.stations) {
-      if (s.containsPoint(x, y)) {
-        if (s.type === 'counter') {
-          this.player.moveTo(this.playerIdlePos.x, this.playerIdlePos.y, () => this.interact(s));
-        } else {
-          if (this.isPlayerNearStation(s, 70)) {
-            this.interact(s);
-          } else {
-            const targetY = Math.max(playerTopLimit, Math.min(s.y + s.size + 15, this.layout.staffAreaBottom));
-            this.player.moveTo(s.x, targetY, () => this.interact(s));
-          }
-        }
+      if (Math.hypot(x - s.x, y - s.y) < s.size + 20) {
+        this.player.moveTo(s.x, s.y + 40, () => this.interact(s));
         return;
       }
     }
-    
-    if (y > this.layout.counterY || y < this.TOP_UI_HEIGHT) return;
-    
-    const minSafeY = Math.max(playerTopLimit, this.layout.counterY - 50);
-    const clampedY = Math.max(minSafeY, Math.min(y, this.layout.staffAreaBottom));
-    this.player.moveTo(x, clampedY);
+    Tracker.recordInteraction(true); // 空點
+    this.player.moveTo(x, y);
   },
-  
+
   interact(station) {
-    if (this.playerHolding) {
-      if (this.playerHolding.type === 'package' && station.type === 'counter') {
-      } else if (this.playerHolding.type === 'package') {
-        this.showToast('📦 請到收銀台完成結帳');
-        return;
-      } else {
-        const area = this.playerHolding.type === 'coffee' ? '左邊' : '右邊';
-        this.showToast(`🖐️ 請先送到${area}等待區`);
-        return;
-      }
-    }
+    Tracker.recordInteraction(); // 紀錄有效點擊
     
     if (station.type === 'coffee') {
-      if (this.coffeeReady) { this.pickupCoffee(); return; }
-      if (this.coffeeRunning) { 
-        const remaining = Math.ceil((100 - this.coffeeProgress) / 0.25 / 60);
-        this.showToast(`☕ 沖泡中 ${Math.floor(this.coffeeProgress)}%，約${remaining}秒`); 
-        return;
-      }
+      if (this.coffeeReady) { this.coffeeReady = false; this.playerHolding = {type:'coffee', emoji:'☕'}; this.showToast('取得咖啡'); return; }
       const task = TaskManager.findTaskByTypeAndStep('coffee', 'make');
-      if (task) { 
-        Panels.showCoffee(task); 
-      }
-      else { 
-        const payTask = TaskManager.findTaskByTypeAndStep('coffee', 'pay');
-        if (payTask) { 
-          this.showToast('💳 請先到櫃台結帳'); 
-        }
-        else { 
-          if (this.coffeeQueue.some(t => !t.completed)) {
-            this.showToast('☕ 請先送達已完成的咖啡');
-          } else {
-            this.showToast('目前沒有咖啡訂單'); 
-          }
-        }
-      }
-      return;
+      if (task && !this.coffeeRunning) { Panels.showCoffee(task); return; }
     }
-    
-    if (station.type === 'microwave') {
-      if (this.microwaveReady) { this.pickupMicrowave(); return; }
-      if (this.microwaveRunning) { 
-        const remaining = Math.ceil((100 - this.microwaveProgress) / 0.3 / 60);
-        this.showToast(`🔥 加熱中 ${Math.floor(this.microwaveProgress)}%，約${remaining}秒`); 
-        return;
-      }
+    else if (station.type === 'microwave') {
+      if (this.microwaveReady) { this.microwaveReady = false; this.playerHolding = {type:'bento', emoji:'🍱'}; this.showToast('取得餐點'); return; }
       const task = TaskManager.findTaskByTypeAndStep('bento', 'heat');
-      if (task) { 
-        Panels.showMicrowave(task); 
-      }
-      else { 
-        const payTask = TaskManager.findTaskByTypeAndStep('bento', 'pay');
-        if (payTask) { 
-          this.showToast('💳 請先到櫃台結帳'); 
-        }
-        else { 
-          if (this.microwaveQueue.some(t => !t.completed)) {
-            this.showToast('🍱 請先送達已完成的餐點');
-          } else {
-            this.showToast('目前沒有加熱訂單'); 
-          }
-        }
-      }
-      return;
+      if (task && !this.microwaveRunning) { Panels.showMicrowave(task); return; }
     }
-    
-    if (station.type === 'packages') {
+    else if (station.type === 'packages') {
       const task = TaskManager.findTaskByTypeAndStep('package', 'find');
+      if (task && this.currentTask === task) { Panels.showPackage(task); return; }
+    }
+    else if (station.type === 'counter') {
+      // 1. 交餐/包裹
+      if (this.playerHolding) {
+         const t = TaskManager.findTaskByTypeAndStep(this.playerHolding.type, 'waiting') || TaskManager.findTaskByTypeAndStep(this.playerHolding.type, 'checkout');
+         if(t) { 
+           this.completeTask(t); this.playerHolding = null; return; 
+         }
+      }
+      // 2. 結帳新單
+      const task = TaskManager.findFirstCounterTask();
       if (task) {
-        if (this.currentTask !== task) {
-          this.showToast('📦 請先到櫃台接單（點擊收銀台）');
-          station.doShake();
-          return;
+        if (task.step === 'pay') {
+          task.step = task.type === 'coffee' ? 'make' : 'heat';
+          this.currentTask = task; Tracker.recordMainTaskAction(task.id, task.type);
+          this.showToast('已結帳，請去製作');
+        } else if (task.step === 'find') {
+          this.currentTask = task; Tracker.recordMainTaskAction(task.id, task.type);
+          this.showToast('請去尋找包裹');
+        } else if (task.step === 'scan') {
+          this.currentTask = task; Tracker.recordMainTaskAction(task.id, task.type);
+          ScanPanel.show(task);
         }
-        Panels.showPackage(task);
-      }
-      else { 
-        this.showToast('目前沒有包裹訂單'); 
-      }
-      return;
-    }
-    
-    if (station.type === 'counter') {
-      const checkoutTask = TaskManager.findTaskByStep('checkout');
-      if (checkoutTask) { 
-        if (this.playerHolding && this.playerHolding.type === 'package') {
-          this.playerHolding = null;
-        }
-        this.completeTask(checkoutTask); 
-        station.activate(); 
-        this.player.moveTo(this.playerIdlePos.x, this.playerIdlePos.y);
-        this.currentTask = null;
+        TaskManager.renderUI();
         return;
       }
-      
-      const firstTask = TaskManager.findFirstCounterTask();
-      if (!firstTask) {
-        this.showToast('目前沒有待結帳的顧客');
-        return;
-      }
-      
-      if ((firstTask.type === 'coffee' || firstTask.type === 'bento') && firstTask.step === 'pay') {
-        this.processPayment(firstTask);
-        station.activate();
-        this.player.moveTo(this.playerIdlePos.x, this.playerIdlePos.y);
-        this.currentTask = firstTask;
-        return;
-      }
-      
-      if (firstTask.type === 'package' && firstTask.step === 'find') {
-        if (this.currentTask !== firstTask) {
-          this.currentTask = firstTask;
-          this.showToast('📦 已接單！請去包裹架找包裹', 'success');
-          station.activate();
-          this.player.moveTo(this.playerIdlePos.x, this.playerIdlePos.y);
-          this.correctSteps++; this.totalSteps++;
-          
-          this.updateUI();
-          return;
-        }
-      }
-      
-      if (firstTask.type === 'checkout' && firstTask.step === 'scan') {
-        this.currentTask = firstTask;
-        ScanPanel.show(firstTask); 
-        return; 
-      }
-      
-      const pendingTask = TaskManager.getAnyActiveTask();
-      if (pendingTask) { 
-        if (pendingTask.step === 'make') {
-          if (this.coffeeRunning) {
-            this.showToast('☕ 咖啡製作中，請稍候');
-          } else {
-            this.showToast('☕ 請先去咖啡機製作咖啡');
-          }
-        } else if (pendingTask.step === 'heat') {
-          if (this.microwaveRunning) {
-            this.showToast('🔥 餐點加熱中，請稍候');
-          } else {
-            this.showToast('🔥 請先去微波爐加熱餐點');
-          }
-        } else if (pendingTask.step === 'waiting') {
-          if (pendingTask.type === 'coffee') {
-            if (this.coffeeReady) {
-              this.showToast('☕ 咖啡好了！請去咖啡機取餐');
-            } else {
-              this.showToast(`☕ 製作中 ${Math.floor(this.coffeeProgress)}%，請稍候`);
-            }
-          } else {
-            if (this.microwaveReady) {
-              this.showToast('🍱 餐點好了！請去微波爐取餐');
-            } else {
-              this.showToast(`🔥 加熱中 ${Math.floor(this.microwaveProgress)}%，請稍候`);
-            }
-          }
-        } else if (pendingTask.step === 'find') {
-          this.showToast('📦 請先去包裹架找包裹');
-        } else {
-          this.showToast('❌ 請先完成其他步驟');
-        }
-        station.doShake(); this.totalSteps++; 
-      }
-      else { 
-        this.showToast('目前沒有待結帳訂單'); 
-      }
     }
+    Tracker.recordInteraction(true); // 亂點機台
   },
-  
-  pickupCoffee() {
-    this.playerHolding = { type: 'coffee', emoji: '☕' };
-    this.coffeeReady = false;
-    this.stations[1].activate();
-    this.floatingTexts.push(new FloatingText(this.stations[1].x, this.stations[1].y - 30, '☕拿起', '#f59e0b'));
-    this.showToast('☕ 請送到左邊等待區', 'success');
-  },
-  
-  pickupMicrowave() {
-    const emoji = this.microwaveReadyEmoji;
-    this.playerHolding = { type: 'bento', emoji: emoji };
-    this.microwaveReady = false;
-    this.stations[2].activate();
-    this.floatingTexts.push(new FloatingText(this.stations[2].x, this.stations[2].y - 30, `${emoji}拿起`, '#f59e0b'));
-    this.showToast(`${emoji} 請送到右邊等待區`, 'success');
-  },
-  
-  processPayment(task) {
-    if (task.type === 'coffee') {
-      task.step = 'make';
-      this.coffeeQueue.push(task);
-      this.showToast('💳 咖啡已結帳，請去咖啡機製作', 'success');
-    } else if (task.type === 'bento') {
-      task.step = 'heat';
-      this.microwaveQueue.push(task);
-      this.showToast('💳 已結帳，請去微波爐加熱', 'success');
-    }
-    const customer = this.customers.find(c => c.task === task);
-    if (customer) { 
-      customer.state = 'toWait';
-      const area = task.type === 'coffee' ? this.waitAreaLeft : this.waitAreaRight;
-      const queue = task.type === 'coffee' ? this.coffeeQueue : this.microwaveQueue;
-      const waitingCustomers = queue.filter(t => !t.completed);
-      const index = waitingCustomers.indexOf(task);
-      const pos = this.getWaitAreaPosition(area, index, waitingCustomers.length);
-      customer.targetX = pos.x;
-      customer.targetY = pos.y;
-    }
-    this.addCoins(10, this.width/2, this.layout.counterY - 20);
-    this.floatingTexts.push(new FloatingText(this.width/2, this.layout.counterY - 40, '💳+10', '#22c55e'));
-    this.correctSteps++; this.totalSteps++;
-    
-    setTimeout(() => { CustomerManager.reorganizeQueue(); CustomerManager.spawnNext(); }, 300);
-    this.updateUI();
-  },
-  
-  deliverToWaitArea(type) {
-    if (type === 'coffee' && this.coffeeTask) {
-      const task = this.coffeeTask;
-      task.completed = true;
-      this.coffeeRunning = false; this.coffeeProgress = 0; this.coffeeTask = null; this.playerHolding = null;
-      const customer = this.customers.find(c => c.task === task);
-      if (customer) customer.leave();
-      
-      this.completedOrders++;
-      this.addCoins(40, this.waitAreaLeft.x, this.waitAreaLeft.y);
-      this.floatingTexts.push(new FloatingText(this.waitAreaLeft.x, this.waitAreaLeft.y - 20, '☕完成 +40', '#22c55e'));
-      this.showToast('☕ 咖啡送達！', 'success');
-      this.correctSteps++; this.totalSteps++;
-      
-      if (this.currentTask === task) {
-        this.currentTask = null;
-      }
-      
-      this.repositionWaitingCustomers('coffee');
-      
-      setTimeout(() => CustomerManager.reorganizeQueue(), 300);
-      if (this.completedOrders >= this.totalOrders) { setTimeout(() => RestockGame.start(), 600); }
-      else { setTimeout(() => CustomerManager.spawnNext(), 500); }
-    }
-    if (type === 'bento' && this.microwaveTask) {
-      const task = this.microwaveTask;
-      task.completed = true;
-      this.microwaveRunning = false; this.microwaveProgress = 0; this.microwaveTask = null; this.playerHolding = null;
-      const customer = this.customers.find(c => c.task === task);
-      if (customer) customer.leave();
-      
-      this.completedOrders++;
-      this.addCoins(40, this.waitAreaRight.x, this.waitAreaRight.y);
-      this.floatingTexts.push(new FloatingText(this.waitAreaRight.x, this.waitAreaRight.y - 20, '🍱完成 +40', '#22c55e'));
-      this.showToast('🍱 餐點送達！', 'success');
-      this.correctSteps++; this.totalSteps++;
-      
-      if (this.currentTask === task) {
-        this.currentTask = null;
-      }
-      
-      this.repositionWaitingCustomers('bento');
-      
-      setTimeout(() => CustomerManager.reorganizeQueue(), 300);
-      if (this.completedOrders >= this.totalOrders) { setTimeout(() => RestockGame.start(), 600); }
-      else { setTimeout(() => CustomerManager.spawnNext(), 500); }
-    }
-    this.updateUI();
-  },
-  
-  repositionWaitingCustomers(type) {
-    const queue = type === 'coffee' ? this.coffeeQueue : this.microwaveQueue;
-    const area = type === 'coffee' ? this.waitAreaLeft : this.waitAreaRight;
-    const waitingTasks = queue.filter(t => !t.completed);
-    
-    waitingTasks.forEach((task, index) => {
-      const customer = this.customers.find(c => c.task === task && c.state !== 'leaving');
-      if (customer) {
-        const pos = this.getWaitAreaPosition(area, index, waitingTasks.length);
-        customer.targetX = pos.x;
-        customer.targetY = pos.y;
-      }
-    });
-  },
-  
+
   completeTask(task) {
-    task.completed = true;
+    task.completed = true; this.completedOrders++;
+    this.coins += 50; document.getElementById('coin-value').textContent = this.coins;
+    this.showToast('任務完成！', 'success');
+    this.currentTask = null;
     const customer = this.customers.find(c => c.task === task);
-    if (customer) customer.leave();
-    this.completedOrders++;
-    this.addCoins(50, this.width/2, this.layout.counterY - 20);
-    this.floatingTexts.push(new FloatingText(this.width/2, this.layout.counterY - 40, '✅+50', '#22c55e'));
-    this.correctSteps++; this.totalSteps++;
-    
-    if (this.currentTask === task) {
-      this.currentTask = null;
-    }
-    
-    setTimeout(() => CustomerManager.reorganizeQueue(), 300);
-    
-    if (this.completedOrders >= this.totalOrders) { 
-      setTimeout(() => RestockGame.start(), 600); 
-    }
-    else { setTimeout(() => CustomerManager.spawnNext(), 500); }
-    this.updateUI();
-  },
-  
-  startCoffee(task) {
-    this.coffeeRunning = true; this.coffeeProgress = 0; this.coffeeTask = task; this.coffeeReady = false;
-    task.step = 'waiting';
-    this.stations[1].activate();
-    this.floatingTexts.push(new FloatingText(this.stations[1].x, this.stations[1].y - 30, '☕開始沖泡', '#f59e0b'));
-    this.correctSteps++; this.totalSteps++;
-    
-    this.updateUI();
-  },
-  
-  startMicrowave(task) {
-    this.microwaveRunning = true; this.microwaveProgress = 0; this.microwaveTask = task; this.microwaveReady = false;
-    if (task.microwave === 1) this.microwaveReadyEmoji = '🥪';
-    else if (task.microwave === 2) this.microwaveReadyEmoji = '🍙';
-    else this.microwaveReadyEmoji = '🍱';
-    task.step = 'waiting';
-    this.stations[2].activate();
-    this.floatingTexts.push(new FloatingText(this.stations[2].x, this.stations[2].y - 30, '🔥開始加熱', '#f59e0b'));
-    this.correctSteps++; this.totalSteps++;
-    
-    this.updateUI();
-  },
-  
-  addCoins(n, x, y) {
-    this.coins += n;
-    for (let i = 0; i < Math.min(n/8, 5); i++) {
-      setTimeout(() => this.particles.push(new Particle(x, y)), i * 30);
-    }
-  },
-  
-  calculateMainTaskScore(mainTimeSeconds, mainCorrect, mainTotal) {
-    const { W_a, W_t, TargetTime } = this.scoringParams;
-    const accuracy = mainTotal > 0 ? mainCorrect / mainTotal : 0;
-    const speedScore = Math.min(TargetTime / Math.max(mainTimeSeconds, 1), 1.5);
-    const basePerformance = (accuracy * W_a) + (speedScore * W_t);
-    return { accuracy, timeSeconds: mainTimeSeconds, speedScore, basePerformance };
-  },
-  
-  calculateRestockScore(restockCorrect, restockTotal) {
-    const accuracy = restockTotal > 0 ? restockCorrect / restockTotal : 0;
-    return { accuracy, basePerformance: accuracy };
-  },
-  
-  calculateFinalScore(mainTimeSeconds, restockResult) {
-    const { DifficultyMultiplier, S_ceiling } = this.scoringParams;
-    const restockCorrect = restockResult ? restockResult.score : 0;
-    const restockMistakes = restockResult ? restockResult.mistakes : 0;
-    const restockTotal = restockCorrect + restockMistakes;
-    const mainCorrect = this.correctSteps - restockCorrect;
-    const mainTotal = this.totalSteps - restockTotal;
-    
-    const mainScore = this.calculateMainTaskScore(mainTimeSeconds, mainCorrect, mainTotal);
-    const restockScore = this.calculateRestockScore(restockCorrect, restockTotal);
-    
-    const combinedBase = (mainScore.basePerformance * 0.8) + (restockScore.basePerformance * 0.2);
-    const rawScore = combinedBase * DifficultyMultiplier;
-    const finalScore = Math.min(Math.round((rawScore / S_ceiling) * 100), 100);
-    
-    return {
-      main: { ...mainScore, correctSteps: mainCorrect, totalSteps: mainTotal },
-      restock: { ...restockScore, correct: restockCorrect, total: restockTotal },
-      combinedBasePerformance: combinedBase,
-      rawScore, finalScore
-    };
-  },
-  
-  showToast(msg, type) {
-    const t = document.getElementById('toast');
-    if (t.textContent === msg && t.classList.contains('show')) return;
-    if (this.toastTimeout) clearTimeout(this.toastTimeout);
-    t.className = '';
-    requestAnimationFrame(() => {
-      t.textContent = msg;
-      t.className = type === 'success' ? 'show success' : 'show';
-      this.toastTimeout = setTimeout(() => {
-        t.className = '';
-        this.toastTimeout = null;
-      }, 2000);
-    });
-  },
-  
-  updateUI() {
-    document.getElementById('order-progress').textContent = `${this.completedOrders}/${this.totalOrders}`;
-    document.getElementById('coin-value').textContent = this.coins;
-    const el = Math.floor((Date.now() - this.startTime) / 1000);
-    document.getElementById('time-display').textContent = `${Math.floor(el/60)}:${(el%60).toString().padStart(2,'0')}`;
+    if(customer) customer.leave();
+    setTimeout(() => CustomerManager.spawnNext(), 400);
     TaskManager.renderUI();
   },
-  
+
+  showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.className = type === 'success' ? 'show success' : 'show';
+    setTimeout(() => { t.className = ''; }, 1500);
+  },
+
   async endGame() {
     this.state = 'ended';
-    const restockDuration = RestockGame.restockStartTime > 0 ? (Date.now() - RestockGame.restockStartTime) : 0;
-    const mainTimeMs = Date.now() - this.startTime - restockDuration;
-    const mainTimeSeconds = Math.round(mainTimeMs / 1000);
-    const restockResult = this.restockResult || { bonusCoins: 0, penaltyCoins: 0, netCoins: 0, score: 0, mistakes: 0 };
-    const shopCoins = this.coins - restockResult.netCoins;
-    const totalCoins = this.coins;
+    RestockGame.end();
+    this.canvas.style.filter = 'none';
+    document.getElementById('current-task-bar').style.display = 'flex';
     
-    const scoreData = this.calculateFinalScore(mainTimeSeconds, restockResult);
-    const { main, restock, combinedBasePerformance, rawScore, finalScore } = scoreData;
-    const mainAccPercent = Math.round(main.accuracy * 100);
+    // 萃取臨床特徵資料
+    const metrics = Tracker.exportClinicalData();
     
-    let grade, color;
-    if (finalScore >= 90) { grade = 'S'; color = '#fbbf24'; }       
-    else if (finalScore >= 80) { grade = 'A'; color = '#22c55e'; }  
-    else if (finalScore >= 70) { grade = 'B'; color = '#3b82f6'; }  
-    else if (finalScore >= 60) { grade = 'C'; color = '#a855f7'; }  
-    else { grade = 'D'; color = '#ef4444'; }                         
-    
-    document.getElementById('result-grade').textContent = grade;
-    document.getElementById('result-grade').style.color = color;
-    document.getElementById('result-accuracy').textContent = mainAccPercent + '%';
-    document.getElementById('result-time').textContent = `${Math.floor(mainTimeSeconds/60)}:${(mainTimeSeconds%60).toString().padStart(2,'0')}`;
-    document.getElementById('result-orders').textContent = this.completedOrders;
-    document.getElementById('result-coins').textContent = shopCoins;
-    
-    document.getElementById('result-restock-bonus').textContent = '+' + restockResult.bonusCoins;
-    document.getElementById('result-restock-penalty').textContent = restockResult.penaltyCoins > 0 ? '-' + restockResult.penaltyCoins : '0';
-    document.getElementById('result-total-coins').textContent = totalCoins;
-    
+    document.getElementById('res-orders').textContent = this.completedOrders;
+    document.getElementById('res-rt').textContent = metrics.planning_latency_avg_ms;
+    document.getElementById('res-commission').textContent = metrics.commission_errors;
+    document.getElementById('res-reconfig').textContent = metrics.rule_reconfig_latency_ms;
+    document.getElementById('res-redundant').textContent = metrics.redundant_clicks;
     document.getElementById('result-screen').classList.add('show');
-    
-    const gameResult = {
-      session_id: this.sessionId || 'GAME_SESSION_' + Date.now(),
-      user_name: userInfo.name, // 綁定玩家輸入的姓名
-      user_age: userInfo.age,   // 綁定玩家輸入的年齡
-      client_timestamp: Date.now(),
-      scoring: {
-        params: this.scoringParams,
-        main_task: {
-          accuracy: Math.round(main.accuracy * 10000) / 10000,
-          time_seconds: main.timeSeconds,
-          speed_score: Math.round(main.speedScore * 10000) / 10000,
-          base_performance: Math.round(main.basePerformance * 10000) / 10000,
-          correct_steps: main.correctSteps,
-          total_steps: main.totalSteps,
-          weight: 0.8
-        },
-        restock_task: {
-          accuracy: Math.round(restock.accuracy * 10000) / 10000,
-          base_performance: Math.round(restock.basePerformance * 10000) / 10000,
-          correct: restock.correct,
-          total: restock.total,
-          weight: 0.2
-        },
-        combined_base_performance: Math.round(combinedBasePerformance * 10000) / 10000,
-        raw_score: Math.round(rawScore * 10000) / 10000,
-        final_score: finalScore,
-        grade: grade
-      },
-      details: {
-        main_time_ms: mainTimeMs,
-        completed_orders: this.completedOrders,
-        total_orders: this.totalOrders,
-        shop_coins: shopCoins,
-        restock_bonus: restockResult.bonusCoins,
-        restock_penalty: restockResult.penaltyCoins,
-        total_coins: totalCoins
-      }
+
+    const payload = {
+      user_name: userInfo.name, user_age: userInfo.age, timestamp: Date.now(),
+      total_score: this.coins + RestockGame.score * 8, // 顯示用分數
+      clinical_metrics: metrics
     };
     
-    // --- 上傳至 Firebase ---
     const statusEl = document.getElementById('upload-status');
-    const retryBtn = document.getElementById('retry-btn');
-    
-    statusEl.style.display = 'block';
-    statusEl.innerHTML = `⏳ 正在將 ${userInfo.name} 的成績同步至資料庫...`;
-    retryBtn.disabled = true;
-    retryBtn.style.opacity = '0.5';
-
+    statusEl.style.display = 'block'; statusEl.textContent = '資料上傳中...';
     try {
-        await db.collection("one_day_manager_results").add(gameResult);
-        statusEl.innerHTML = `<span style="color:#4ade80">✅ 數據已成功上傳至 Firebase！</span>`;
-    } catch (error) {
-        console.error("Error adding document: ", error);
-        statusEl.innerHTML = `<span style="color:#f87171">❌ 上傳失敗：${error.message}</span>`;
-    } finally {
-        retryBtn.disabled = false;
-        retryBtn.style.opacity = '1';
-    }
-
-    if (typeof onGameComplete === 'function') {
-      onGameComplete(gameResult);
-    }
+      await db.collection("executive_function_poc").add(payload);
+      statusEl.innerHTML = `<span style="color:#4ade80">✅ 數據已上傳至 Firebase</span>`;
+    } catch(e) { statusEl.innerHTML = `<span style="color:#f87171">❌ 上傳失敗: ${e.message}</span>`; }
     
-    document.getElementById('db-output').textContent = JSON.stringify(gameResult, null, 2);
+    document.getElementById('db-output').textContent = JSON.stringify(payload, null, 2);
   },
-  
+
   loop() {
-    if (this.state === 'playing') {
-      if (this.coffeeRunning && this.coffeeProgress < 100) { this.coffeeProgress += 0.25; if (this.coffeeProgress >= 100) this.coffeeReady = true; }
-      if (this.microwaveRunning && this.microwaveProgress < 100) { this.microwaveProgress += 0.3; if (this.microwaveProgress >= 100) this.microwaveReady = true; }
+    if (this.state === 'playing' && this.phase === 1) {
+      if (this.coffeeRunning) { this.coffeeProgress += 0.5; if(this.coffeeProgress>=100) { this.coffeeRunning = false; this.coffeeReady = true; this.coffeeProgress=0; }}
+      if (this.microwaveRunning) { this.microwaveProgress += 0.6; if(this.microwaveProgress>=100) { this.microwaveRunning = false; this.microwaveReady = true; this.microwaveProgress=0; }}
       this.player?.update();
-      this.stations.forEach(s => s.update());
       this.customers.forEach(c => c.update());
       this.customers = this.customers.filter(c => c.alive);
-      this.particles = this.particles.filter(p => { p.update(); return p.alive; });
-      this.floatingTexts = this.floatingTexts.filter(f => { f.update(); return f.alive; });
-      this.updateUI();
-      
-      this.checkIdleHint();
     }
     this.render();
     requestAnimationFrame(() => this.loop());
   },
-  
-  checkIdleHint() {
-    if (Panels.isOpen || ScanPanel.isOpen || RestockGame.isOpen) {
-      this.idleHintActive = false;
-      return;
-    }
-    const now = Date.now();
-    if (now - this.lastActionTime >= this.IDLE_TIMEOUT) {
-      this.idleHintTarget = this.getNextActionTarget();
-      this.idleHintActive = this.idleHintTarget !== null;
-    }
-  },
-  
-  getNextActionTarget() {
-    if (this.playerHolding) {
-      if (this.playerHolding.type === 'coffee') return { x: this.waitAreaLeft.x, y: this.waitAreaLeft.y, type: 'waitArea' };
-      if (this.playerHolding.type === 'bento') return { x: this.waitAreaRight.x, y: this.waitAreaRight.y, type: 'waitArea' };
-      if (this.playerHolding.type === 'package') {
-        const s = this.stations[0];
-        return { x: s.x, y: s.y, type: 'station', icon: s.icon, radius: s.size };
-      }
-    }
-    if (this.coffeeReady) {
-      const s = this.stations[1]; return { x: s.x, y: s.y, type: 'station', icon: s.icon, radius: s.size };
-    }
-    if (this.microwaveReady) {
-      const s = this.stations[2]; return { x: s.x, y: s.y, type: 'station', icon: s.icon, radius: s.size };
-    }
-    const coffeeTask = TaskManager.findTaskByTypeAndStep('coffee', 'make');
-    if (coffeeTask && !this.coffeeRunning) {
-      const s = this.stations[1]; return { x: s.x, y: s.y, type: 'station', icon: s.icon, radius: s.size };
-    }
-    const bentoTask = TaskManager.findTaskByTypeAndStep('bento', 'heat');
-    if (bentoTask && !this.microwaveRunning) {
-      const s = this.stations[2]; return { x: s.x, y: s.y, type: 'station', icon: s.icon, radius: s.size };
-    }
-    const packageTask = TaskManager.findTaskByTypeAndStep('package', 'find');
-    if (packageTask && this.currentTask === packageTask) {
-      const s = this.stations[3]; return { x: s.x, y: s.y, type: 'station', icon: s.icon, radius: s.size };
-    }
-    const checkoutTask = TaskManager.findTaskByStep('checkout');
-    if (checkoutTask) {
-      const s = this.stations[0]; return { x: s.x, y: s.y, type: 'station', icon: s.icon, radius: s.size };
-    }
-    const firstTask = TaskManager.findFirstCounterTask();
-    if (firstTask) {
-      const s = this.stations[0]; return { x: s.x, y: s.y, type: 'station', icon: s.icon, radius: s.size };
-    }
-    return null;
-  },
-  
-  renderIdleGlow(ctx) {
-    if (!this.idleHintActive || !this.idleHintTarget) return;
-    const target = this.idleHintTarget;
-    const pulsePhase = (Math.sin(Date.now() / 500) + 1) / 2;  
-    const baseAlpha = 0.4 + pulsePhase * 0.4;
-    const spreadSize = 10 + pulsePhase * 10;
-    
-    if (target.type === 'waitArea') {
-      const boxWidth = Math.min(90, this.width * 0.22);
-      const boxHeight = 160;
-      const cx = target.x;
-      const cy = target.y;
-      
-      ctx.save();
-      for (let i = spreadSize; i > 0; i -= 2) {
-        const alpha = baseAlpha * (i / spreadSize) * 0.1;
-        ctx.fillStyle = `rgba(251, 191, 36, ${alpha})`;
-        ctx.beginPath();
-        ctx.roundRect(cx - boxWidth/2 - i, cy - boxHeight/2 - i, boxWidth + i * 2, boxHeight + i * 2, 12 + i * 0.3);
-        ctx.fill();
-      }
-      ctx.restore();
-    } else {
-      const radius = target.radius || 45;
-      const glowRadius = radius + spreadSize;
-      const glowGradient = ctx.createRadialGradient(target.x, target.y, radius * 0.8, target.x, target.y, glowRadius);
-      glowGradient.addColorStop(0, `rgba(251, 191, 36, ${baseAlpha * 0.8})`);
-      glowGradient.addColorStop(0.4, `rgba(251, 191, 36, ${baseAlpha * 0.5})`);
-      glowGradient.addColorStop(0.7, `rgba(251, 191, 36, ${baseAlpha * 0.2})`);
-      glowGradient.addColorStop(1, `rgba(251, 191, 36, 0)`);
-      
-      ctx.fillStyle = glowGradient;
-      ctx.beginPath();
-      ctx.arc(target.x, target.y, glowRadius, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  },
-  
-  renderIdleFinger(ctx) {
-    if (!this.idleHintActive || !this.idleHintTarget) return;
-    const target = this.idleHintTarget;
-    const bounce = Math.sin(Date.now() / 400) * 4;
-    
-    ctx.save();
-    if (target.type === 'waitArea') {
-      const boxWidth = Math.min(90, this.width * 0.22);
-      const boxHeight = 160;
-      const fingerX = target.x + boxWidth/2 + 10 + bounce;
-      const fingerY = target.y + boxHeight/2 + 10 + bounce;
-      ctx.translate(fingerX, fingerY);
-    } else {
-      const radius = target.radius || 45;
-      const fingerX = target.x + radius + 10 + bounce;
-      const fingerY = target.y + radius + 10 + bounce;
-      ctx.translate(fingerX, fingerY);
-    }
-    ctx.rotate(-45 * Math.PI / 180);
-    ctx.font = '28px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('👆', 0, 0);
-    ctx.restore();
-  },
-  
+
   render() {
-    const ctx = this.ctx, L = this.layout;
-    ctx.clearRect(0, 0, this.width, this.height);
-    if (this.state !== 'playing') return;
-    
-    ctx.fillStyle = '#334155';
-    ctx.fillRect(0, this.TOP_UI_HEIGHT, this.width, L.counterY - this.TOP_UI_HEIGHT);
-    
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(0, L.counterY, this.width, this.height - L.counterY);
-    
-    this.renderIdleGlow(ctx);
-    
-    this.renderWaitArea(ctx, this.waitAreaLeft, '☕', this.coffeeQueue.filter(t => !t.completed).length, this.coffeeQueue, 'coffee');
-    this.renderWaitArea(ctx, this.waitAreaRight, '🍱', this.microwaveQueue.filter(t => !t.completed).length, this.microwaveQueue, 'microwave');
-    
-    const renderList = [];
-
-    this.stations.forEach(s => {
-      let sortY = s.y;
-      if (s.type === 'counter') sortY += 10; 
-      renderList.push({
-        y: sortY,
-        draw: () => {
-          s.render(ctx);
-          if (s.type === 'coffee') this.renderMachineProgress(ctx, s, this.coffeeProgress, this.coffeeRunning, this.coffeeReady, '☕');
-          if (s.type === 'microwave') this.renderMachineProgress(ctx, s, this.microwaveProgress, this.microwaveRunning, this.microwaveReady, this.microwaveReadyEmoji);
-        }
-      });
-    });
-
-    this.customers.forEach(c => {
-      renderList.push({ y: c.y, draw: () => c.render(ctx) });
-    });
-
-    if (this.player) {
-      renderList.push({ y: this.player.y, draw: () => this.player.render(ctx, this.playerHolding) });
-    }
-
-    renderList.sort((a, b) => a.y - b.y);
-    renderList.forEach(obj => obj.draw());
-
-    this.particles.forEach(p => p.render(ctx));
-    this.floatingTexts.forEach(f => f.render(ctx));
-    this.renderIdleFinger(ctx);
-  },
-  
-  renderWaitArea(ctx, area, icon, waitingCount, queue, areaType) {
-    const hasCustomer = waitingCount > 0;
-    const boxWidth = Math.min(90, this.width * 0.22);
-    const boxHeight = 160;  
-    const x = area.x - boxWidth/2;
-    const y = area.y - boxHeight/2;
-    
-    const g = ctx.createLinearGradient(x, y, x, y + boxHeight);
-    g.addColorStop(0, '#4b5563');
-    g.addColorStop(1, '#1f2937');
-    ctx.fillStyle = g;
-    ctx.beginPath(); ctx.roundRect(x, y, boxWidth, boxHeight, 12); ctx.fill();
-    
-    ctx.strokeStyle = '#6b7280'; ctx.lineWidth = 2; ctx.setLineDash([]); 
-    ctx.beginPath(); ctx.roundRect(x, y, boxWidth, boxHeight, 12); ctx.stroke();
-    
-    ctx.font = `bold ${FONT.SMALL}px sans-serif`;
-    ctx.fillStyle = '#d1d5db';
-    ctx.textAlign = 'center';
-    const areaName = areaType === 'coffee' ? '咖啡等待區' : '微波等待區';
-    const label = hasCustomer ? `${icon}${areaName} ×${waitingCount}` : `${icon}${areaName}`;
-    ctx.fillText(label, area.x, area.y + boxHeight/2 + 18);
-  },
-  
-  getWaitAreaPosition(area, index, total) {
-    const maxHeight = 130;
-    const verticalSpacing = Math.max(35, Math.min(60, maxHeight / Math.max(total, 1)));
-    const startY = area.y - (total - 1) * verticalSpacing / 2;
-    const y = startY + index * verticalSpacing;
-    return { x: area.x, y: y };
-  },
-  
-  renderMachineProgress(ctx, station, progress, running, ready, readyEmoji) {
-    if (!running && progress === 0 && !ready) return;
-    const x = station.x, y = station.y;
-    const radius = station.size + 18; 
-    const uiY = y - radius - 28; 
-
-    if (ready) {
-      ctx.font = `bold 16px sans-serif`;
-      const label = "完成";
-      const tw = ctx.measureText(label).width + 16;
-      ctx.fillStyle = '#22c55e'; 
-      ctx.beginPath(); ctx.roundRect(x - tw/2, uiY - 22, tw, 24, 12); ctx.fill();
-      ctx.fillStyle = 'white'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(label, x, uiY - 10);
-
-      const bounce = Math.sin(Date.now()/200) * 3;
-      const itemY = y + 15 + bounce;
-      ctx.save(); ctx.translate(x, itemY);
-      if (station.type === 'coffee') Station.drawVectorCoffee(ctx);
-      else { ctx.font = '28px sans-serif'; ctx.fillText(readyEmoji, 0, 0); }
-      ctx.restore();
-
-    } else if (running && progress < 100) {
-      ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 6;
-      ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.stroke();
-
-      ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 6; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.arc(x, y, radius, -Math.PI/2, -Math.PI/2 + (Math.PI * 2 * Math.min(progress, 100) / 100));
-      ctx.stroke(); ctx.lineCap = 'butt';
-
-      const pctText = Math.floor(progress) + '%';
-      ctx.font = `bold 18px monospace`;
-      const tw = ctx.measureText(pctText).width + 12;
-      ctx.fillStyle = 'rgba(0,0,0,0.7)';
-      ctx.beginPath(); ctx.roundRect(x - tw/2, uiY - 22, tw, 24, 12); ctx.fill();
-      ctx.fillStyle = '#f59e0b'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(pctText, x, uiY - 10);
-    }
+    const ctx = this.ctx; ctx.clearRect(0, 0, this.width, this.height);
+    if(this.state !== 'playing') return;
+    this.stations.forEach(s => s.render(ctx));
+    this.customers.forEach(c => c.render(ctx));
+    if(this.player) this.player.render(ctx, this.playerHolding);
   }
 };
 
-const ScanPanel = {
-  isOpen: false, currentTask: null, items: [], scannedCount: 0, total: 0, lastScannedItem: null,
-  lastActionTime: 0, idleHintActive: false, idleTimer: null, scanFeedbackTimeout: null, IDLE_TIMEOUT: 5000,
-  products: [
-    { icon: '🥤', name: '可樂', price: 25 }, { icon: '🍙', name: '飯糰', price: 35 },
-    { icon: '🍪', name: '餅乾', price: 45 }, { icon: '🧃', name: '果汁', price: 30 },
-    { icon: '🍫', name: '巧克力', price: 40 }, { icon: '🥛', name: '牛奶', price: 35 },
-  ],
-  init() { document.getElementById('scan-confirm').onclick = () => this.complete(); },
-  show(task) {
-    if (this.idleTimer) { clearInterval(this.idleTimer); this.idleTimer = null; }
-    this.isOpen = true; this.currentTask = task; this.scannedCount = 0; this.total = 0; this.lastScannedItem = null;
-    this.lastActionTime = Date.now(); this.idleHintActive = false; this.scanFeedbackTimeout = null;
-    const itemCount = 2 + Math.floor(Math.random() * 3);
-    this.items = [];
-    for (let i = 0; i < itemCount; i++) {
-      const product = this.products[Math.floor(Math.random() * this.products.length)];
-      this.items.push({ ...product, scanned: false, id: i });
-    }
-    this.render(); document.getElementById('scan-panel').classList.add('show');
-    this.startIdleCheck();
-  },
-  startIdleCheck() {
-    if (this.idleTimer) clearInterval(this.idleTimer);
-    this.idleTimer = setInterval(() => {
-      if (!this.isOpen) { clearInterval(this.idleTimer); return; }
-      const allScanned = this.items.every(i => i.scanned);
-      if (!allScanned && Date.now() - this.lastActionTime >= this.IDLE_TIMEOUT) {
-        if (!this.idleHintActive) { this.idleHintActive = true; this.render(); }
-      }
-    }, 500);
-  },
-  render() {
-    const progressEl = document.getElementById('scan-progress'); progressEl.innerHTML = '';
-    this.items.forEach((item, i) => {
-      const dot = document.createElement('div'); dot.className = 'dot';
-      if (item.scanned) dot.classList.add('done');
-      else if (i === this.scannedCount) dot.classList.add('current');
-      progressEl.appendChild(dot);
-    });
-    const scanArea = document.getElementById('scan-area');
-    const allScanned = this.items.every(i => i.scanned);
-    if (allScanned) {
-      scanArea.classList.add('scanning');
-      scanArea.innerHTML = `<div class="scanner">✅</div><div class="hint" style="color:#22c55e;font-size:16px">👇 請點擊下方完成結帳</div>`;
-    } else if (this.lastScannedItem) {
-      scanArea.classList.add('scanning');
-      scanArea.innerHTML = `<div class="scanned-item">${this.lastScannedItem.icon}</div><div class="hint" style="color:#22c55e;font-size:16px">✓ ${this.lastScannedItem.name} $${this.lastScannedItem.price}</div>`;
-    } else {
-      scanArea.classList.remove('scanning');
-      scanArea.innerHTML = `<div class="scanner">📱</div><div class="hint">👆 點擊所有商品即可完成掃描</div>`;
-    }
-    const itemsEl = document.getElementById('scan-items'); itemsEl.innerHTML = '';
-    this.items.forEach(item => {
-      const div = document.createElement('div');
-      div.className = 'scan-item' + (item.scanned ? ' scanned' : '');
-      if (!item.scanned && this.idleHintActive) div.classList.add('idle-hint');
-      div.textContent = item.icon; div.onclick = () => this.scanItem(item);
-      itemsEl.appendChild(div);
-    });
-    if (this.idleHintActive && !allScanned) {
-      const firstUnscanned = itemsEl.querySelector('.scan-item:not(.scanned)');
-      if (firstUnscanned) {
-        const finger = document.createElement('div'); finger.className = 'idle-finger'; finger.textContent = '👆';
-        firstUnscanned.appendChild(finger);
-      }
-    }
-    document.getElementById('scan-total').textContent = '$' + this.total;
-    document.getElementById('scan-confirm').disabled = !this.items.every(i => i.scanned);
-  },
-  scanItem(item) {
-    if (item.scanned) return;
-    item.scanned = true; this.scannedCount++; this.total += item.price; this.lastScannedItem = item;
-    this.lastActionTime = Date.now(); this.idleHintActive = false; this.render();
-    if (this.scanFeedbackTimeout) clearTimeout(this.scanFeedbackTimeout);
-    const currentItem = item;
-    this.scanFeedbackTimeout = setTimeout(() => { 
-      if (this.lastScannedItem === currentItem) { this.lastScannedItem = null; this.render(); }
-      this.scanFeedbackTimeout = null;
-    }, 800);
-  },
-  complete() {
-    this.isOpen = false;
-    if (this.idleTimer) clearInterval(this.idleTimer);
-    if (this.scanFeedbackTimeout) clearTimeout(this.scanFeedbackTimeout);  
-    this.idleTimer = null; this.scanFeedbackTimeout = null;
-    document.getElementById('scan-panel').classList.remove('show');
-    this.currentTask.step = 'done'; Game.completeTask(this.currentTask);
-    Game.stations[0].activate(); Game.showToast(`🧾 結帳完成！$${this.total}`, 'success');
-  }
-};
-
-class Player {
-  constructor(x, y) {
-    this.x = x; this.y = y; this.tx = x; this.ty = y;
-    this.speed = 7.5; this.size = 32; this.moving = false; this.onArrive = null;
-    this.animFrame = 0; this.facing = 1; 
-  }
-
-  moveTo(x, y, cb) {
-    this.tx = x; this.ty = y; this.moving = true; this.onArrive = cb;
-    if (x < this.x - 5) this.facing = -1;
-    if (x > this.x + 5) this.facing = 1;
-  }
-
-  update() {
-    if (!this.moving) {
-      this.animFrame = (Date.now() / 500) % (Math.PI * 2);
-      return;
-    }
-    const dx = this.tx - this.x, dy = this.ty - this.y, d = Math.hypot(dx, dy);
-    if (d < this.speed) {
-      this.x = this.tx; this.y = this.ty; this.moving = false;
-      if (this.onArrive) { this.onArrive(); this.onArrive = null; }
-    } else {
-      this.x += dx / d * this.speed; this.y += dy / d * this.speed; this.animFrame += 0.3;
-      if (Math.abs(dx) > 0.5) this.facing = dx > 0 ? 1 : -1;
-    }
-  }
-
-  render(ctx, holding) {
-    const x = this.x, y = this.y, s = this.size;
-    const walkBob = this.moving ? Math.sin(this.animFrame) * 3 : Math.sin(this.animFrame) * 1;
-    const handSwing = this.moving ? Math.cos(this.animFrame) * 8 : 0;
-    
-    ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(x, y + s/2 + 2, s/2.5, s/6, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.save(); ctx.translate(0, walkBob); 
-
-    ctx.fillStyle = '#3b82f6'; 
-    const legOffset = this.moving ? Math.sin(this.animFrame) * 6 : 0;
-    ctx.beginPath(); ctx.arc(x - 6 + legOffset, y + s/2, 5, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x + 6 - legOffset, y + s/2, 5, 0, Math.PI * 2); ctx.fill();
-
-    ctx.fillStyle = '#16a34a'; ctx.beginPath(); ctx.roundRect(x - s/2 + 2, y - s/2 + 5, s - 4, s - 5, 12); ctx.fill();
-
-    ctx.fillStyle = '#f59e0b'; ctx.beginPath();
-    ctx.moveTo(x - 11, y - 5); ctx.lineTo(x + 11, y - 5); ctx.lineTo(x + 13, y + s/2 - 4);
-    ctx.quadraticCurveTo(x, y + s/2 + 2, x - 13, y + s/2 - 4); ctx.fill();
-
-    ctx.fillStyle = '#d97706'; ctx.beginPath(); ctx.arc(x, y + 4, 7, 0, Math.PI, false); ctx.fill();
-
-    const handY = holding ? y - 5 : y + 5; const handXOffset = holding ? 14 : 16;
-    ctx.fillStyle = '#fcd34d'; 
-    if (!holding) {
-        ctx.beginPath(); ctx.arc(x - handXOffset + handSwing * 0.5, handY - handSwing * 0.3, 5, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(x + handXOffset - handSwing * 0.5, handY + handSwing * 0.3, 5, 0, Math.PI * 2); ctx.fill();
-    } else {
-        ctx.beginPath(); ctx.arc(x - 12, y - 8, 5, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.arc(x + 12, y - 8, 5, 0, Math.PI*2); ctx.fill();
-    }
-
-    const headY = y - 16; ctx.fillStyle = '#fcd34d';
-    ctx.beginPath(); ctx.arc(x, headY, 14, 0, Math.PI * 2); ctx.fill();
-
-    const faceX = x + (this.facing * 4); ctx.fillStyle = '#1e293b';
-    ctx.beginPath(); ctx.arc(faceX - 3, headY - 1, 2, 0, Math.PI * 2); ctx.arc(faceX + 3, headY - 1, 2, 0, Math.PI * 2); ctx.fill();
-
-    ctx.fillStyle = 'rgba(239, 68, 68, 0.2)'; ctx.beginPath(); ctx.arc(faceX - 5, headY + 3, 2.5, 0, Math.PI*2); ctx.arc(faceX + 5, headY + 3, 2.5, 0, Math.PI*2); ctx.fill();
-
-    ctx.fillStyle = '#f59e0b'; ctx.beginPath(); ctx.arc(x, headY - 4, 14.5, Math.PI, 2 * Math.PI); ctx.fill();
-    ctx.fillStyle = '#d97706'; ctx.beginPath();
-    if (this.facing === 1) { ctx.moveTo(x, headY - 4); ctx.quadraticCurveTo(x + 20, headY, x + 16, headY - 10); } 
-    else { ctx.moveTo(x, headY - 4); ctx.quadraticCurveTo(x - 20, headY, x - 16, headY - 10); }
-    ctx.fill();
-
-    if (holding) { ctx.font = '28px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(holding.emoji, x, y - 12 + Math.sin(Date.now()/200)*2); }
-    ctx.restore();
-  }
-}
-
-class Customer {
-  constructor(x, y, task) {
-    this.x = x; this.y = y; this.targetX = x; this.targetY = y; this.task = task;
-    this.queuePosition = 0; this.state = 'entering'; this.alive = true; this.alpha = 0; this.size = 28;
-    this.color = ['#ef4444', '#f97316', '#84cc16', '#06b6d4', '#8b5cf6', '#ec4899', '#6366f1'][Math.floor(Math.random() * 7)];
-    this.hairColor = ['#1a1a1a', '#4a3018', '#854d0e', '#fef3c7', '#9ca3af'][Math.floor(Math.random() * 5)];
-    this.hairStyle = Math.floor(Math.random() * 4); this.hasGlasses = Math.random() < 0.3; this.bobOffset = Math.random() * 100;
-  }
-
-  leave() { this.state = 'leaving'; }
-
-  update() {
-    const speed = 0.15;
-    if (this.state === 'entering') { 
-      this.alpha = Math.min(1, this.alpha + 0.1); this.x += (this.targetX - this.x) * speed; this.y += (this.targetY - this.y) * speed; 
-      if (Math.abs(this.y - this.targetY) < 2) this.state = 'waiting'; 
-    }
-    else if (this.state === 'toWait' || this.state === 'toQueue') { 
-      this.alpha = 1; this.x += (this.targetX - this.x) * speed; this.y += (this.targetY - this.y) * speed; 
-      if (Math.abs(this.x - this.targetX) < 3 && Math.abs(this.y - this.targetY) < 3) this.state = 'waiting'; 
-    }
-    else if (this.state === 'waiting') { 
-      this.alpha = 1; this.x += (this.targetX - this.x) * 0.1; this.y += (this.targetY - this.y) * 0.1; 
-    }
-    else if (this.state === 'leaving') { 
-      this.y += 4; this.alpha -= 0.08; if (this.alpha <= 0) this.alive = false; 
-    }
-  }
-
-  render(ctx) {
-    if (this.alpha <= 0) return;
-    ctx.globalAlpha = this.alpha;
-    const bounce = Math.sin((Date.now() + this.bobOffset) / 300) * 2;
-    const y = this.y + bounce, s = this.size;
-    const hx = this.x, hy = y - 12, hr = s/2.2;
-
-    ctx.fillStyle = this.hairColor;
-    if (this.hairStyle === 1) { 
-        ctx.beginPath(); ctx.moveTo(hx - hr, hy); ctx.lineTo(hx - hr - 2, hy + 16); ctx.lineTo(hx + hr + 2, hy + 16); ctx.lineTo(hx + hr, hy); ctx.fill();
-    }
-
-    ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.beginPath(); ctx.ellipse(this.x, this.y + s/2 + 2, s/2, s/6, 0, 0, Math.PI * 2); ctx.fill();
-
-    ctx.fillStyle = this.color; ctx.beginPath(); ctx.roundRect(this.x - s/2, y - s/3, s, s, 10); ctx.fill();
-
-    ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.beginPath(); ctx.arc(this.x, y - 6, s/3, 0, Math.PI); ctx.fill();
-
-    ctx.fillStyle = '#fce7f3'; ctx.beginPath(); ctx.arc(hx, hy, hr, 0, Math.PI * 2); ctx.fill();
-
-    ctx.fillStyle = '#1e293b';
-    if (this.hasGlasses) { 
-        ctx.strokeStyle = '#333'; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.arc(hx - 4, hy + 1, 3.5, 0, Math.PI * 2); ctx.stroke();
-        ctx.beginPath(); ctx.arc(hx + 4, hy + 1, 3.5, 0, Math.PI * 2); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(hx-1, hy+1); ctx.lineTo(hx+1, hy+1); ctx.stroke(); 
-    } else { 
-        ctx.beginPath(); ctx.arc(hx - 4, hy, 2, 0, Math.PI * 2); ctx.arc(hx + 4, hy, 2, 0, Math.PI * 2); ctx.fill();
-    }
-
-    ctx.strokeStyle = '#c97b5d'; ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    if (this.hairStyle % 2 === 0) { ctx.arc(hx, hy + 5, 3, 0.2 * Math.PI, 0.8 * Math.PI); } 
-    else { ctx.moveTo(hx - 2, hy + 6); ctx.lineTo(hx + 2, hy + 6); }
-    ctx.stroke();
-
-    ctx.fillStyle = this.hairColor; ctx.beginPath();
-    if (this.hairStyle === 0) { ctx.arc(hx, hy, hr + 1, Math.PI, 0); } 
-    else if (this.hairStyle === 1) { ctx.arc(hx, hy, hr + 1, Math.PI, 0); } 
-    else if (this.hairStyle === 2) { ctx.arc(hx, hy, hr + 1, Math.PI, 0); ctx.fill(); ctx.beginPath(); ctx.arc(hx + 8, hy - 12, 6, 0, Math.PI * 2); } 
-    else { ctx.arc(hx, hy - 4, hr - 0.5, Math.PI, 0); }
-    ctx.fill();
-
-    if (this.state !== 'leaving' && this.task && !this.task.completed) {
-      const isInWaitArea = this.state === 'toWait' || this.task.step === 'waiting' || this.task.step === 'make' || this.task.step === 'heat';
-      let isFirstInQueue = false;
-      
-      if (isInWaitArea) {
-        const queue = this.task.type === 'coffee' ? Game.coffeeQueue : Game.microwaveQueue;
-        const waitingTasks = queue.filter(t => !t.completed);
-        isFirstInQueue = waitingTasks.length > 0 && waitingTasks[0] === this.task;
-      } else {
-        isFirstInQueue = this.queuePosition === 0;
-      }
-
-      if (isFirstInQueue) {
-        let txt = this.task.bubble;
-        if (isInWaitArea && this.task.type === 'coffee') {
-          const c = this.task.coffee; txt = `☕${c.size[0]}${c.temp[0]}${c.type[0]}`;
-        } else if (isInWaitArea && this.task.type === 'bento') {
-          const emoji = this.task.microwave === 1 ? '🥪' : this.task.microwave === 2 ? '🍙' : '🍱'; txt = `${emoji}${this.task.microwave}分`;
-        }
-        
-        ctx.font = `bold ${FONT.BUBBLE}px sans-serif`;
-        const tw = ctx.measureText(txt).width + 16, th = 28;
-        let bx, by;
-        if (isInWaitArea) { bx = this.x; by = y - s - 22; } else { bx = this.x + s + 10 + tw/2; by = y - 5; }
-        
-        ctx.fillStyle = isInWaitArea ? 'rgba(59,130,246,0.95)' : 'rgba(255,255,255,0.95)'; 
-        ctx.beginPath(); ctx.roundRect(bx - tw/2, by - th/2, tw, th, 8); ctx.fill();
-        
-        ctx.beginPath();
-        if (isInWaitArea) { ctx.moveTo(bx - 6, by + th/2); ctx.lineTo(bx + 6, by + th/2); ctx.lineTo(bx, by + th/2 + 8); } 
-        else { ctx.moveTo(bx - tw/2, by - 5); ctx.lineTo(bx - tw/2, by + 5); ctx.lineTo(bx - tw/2 - 8, by); }
-        ctx.fill();
-        
-        ctx.fillStyle = isInWaitArea ? '#fff' : '#1e293b'; 
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(txt, bx, by);
-      }
-    }
-    ctx.globalAlpha = 1;
-  }
-}
-
-class Station {
-  constructor(type, x, y, size, icon, name) {
-    this.type = type; this.x = x; this.y = y; this.size = size; this.icon = icon; this.name = name;
-    this.scale = 1; this.shakeAmount = 0; this.glow = 0;
-    
-    if (type === 'packages') {
-      this.decorBoxes = [];
-      const shelfLevels = [-25, 0, 25];
-      const boxCount = 3 + Math.floor(Math.random() * 3);
-      for(let i=0; i<boxCount; i++) {
-        const w = 12 + Math.random() * 8, h = 10 + Math.random() * 6;
-        const levelY = shelfLevels[Math.floor(Math.random() * shelfLevels.length)];
-        this.decorBoxes.push({ x: (Math.random() - 0.5) * 46, y: levelY - (h / 2), w: w, h: h, color: ['#d97706', '#b45309', '#92400e'][Math.floor(Math.random()*3)] });
-      }
-      this.decorBoxes.sort((a, b) => a.y - b.y);
-    }
-  }
-
-  static drawVectorCoffee(ctx) {
-    ctx.fillStyle = '#fce7f3'; ctx.beginPath();
-    ctx.moveTo(-10, -8); ctx.lineTo(10, -8); ctx.lineTo(8, 8); ctx.quadraticCurveTo(0, 10, -8, 8); ctx.lineTo(-10, -8); ctx.fill();
-    ctx.fillStyle = '#4a2512'; ctx.beginPath(); ctx.ellipse(0, -8, 10, 3, 0, 0, Math.PI*2); ctx.fill();
-    ctx.strokeStyle = '#fce7f3'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(6, -4); ctx.quadraticCurveTo(14, -2, 8, 6); ctx.stroke();
-    const time = Date.now() / 300;
-    ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(-3, -12); ctx.quadraticCurveTo(-6 + Math.sin(time)*2, -16, -3, -20); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(3, -12); ctx.quadraticCurveTo(0 + Math.sin(time + 1)*2, -16, 3, -20); ctx.stroke();
-  }
-
-  containsPoint(px, py) { return Math.hypot(px-this.x, py-this.y) < this.size + 18; }
-  activate() { this.scale = 1.2; this.glow = 1; }
-  doShake() { this.shakeAmount = 6; }
-  update() { this.scale += (1-this.scale)*0.12; this.glow *= 0.9; this.shakeAmount *= 0.85; }
-
-  render(ctx) {
-    const x = this.x + Math.sin(Date.now()/40)*this.shakeAmount, y = this.y, s = this.size * this.scale;
-    const isTarget = this.checkIsTarget();
-    if (isTarget) {
-      const pulsePhase = (Math.sin(Date.now() / 500) + 1) / 2;
-      const baseAlpha = 0.3 + pulsePhase * 0.3; 
-      const glowRadius = s + 20 + pulsePhase * 10;
-      const glowGradient = ctx.createRadialGradient(x, y, s * 0.5, x, y, glowRadius);
-      glowGradient.addColorStop(0, `rgba(251, 191, 36, ${baseAlpha})`); glowGradient.addColorStop(1, `rgba(251, 191, 36, 0)`);
-      ctx.fillStyle = glowGradient; ctx.beginPath(); ctx.arc(x, y, glowRadius, 0, Math.PI * 2); ctx.fill();
-    }
-
-    ctx.save(); ctx.translate(x, y); ctx.scale(this.scale, this.scale); 
-    if (this.type === 'coffee') this.drawCoffeeMachine(ctx);
-    else if (this.type === 'microwave') this.drawMicrowave(ctx);
-    else if (this.type === 'packages') this.drawPackageShelf(ctx);
-    else if (this.type === 'counter') this.drawCounter(ctx);
-    else { ctx.fillStyle = '#4b5563'; ctx.beginPath(); ctx.arc(0, 0, s, 0, Math.PI*2); ctx.fill(); }
-    ctx.restore();
-
-    const labelY = this.type === 'counter' ? y + 55 : y + s + 45;
-    ctx.font = `bold ${FONT.STATION_LABEL}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.strokeText(this.name, x, labelY);
-    ctx.fillStyle = '#ffffff'; ctx.fillText(this.name, x, labelY);
-  }
-
-  drawCoffeeMachine(ctx) {
-    ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(0, 25, 30, 8, 0, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#94a3b8'; ctx.beginPath(); ctx.roundRect(-25, -30, 50, 60, 8); ctx.fill();
-    ctx.fillStyle = '#64748b'; ctx.beginPath(); ctx.roundRect(-25, -30, 50, 15, 8); ctx.fill();
-    ctx.fillStyle = '#1e293b'; ctx.fillRect(-20, -10, 40, 30);
-    ctx.fillStyle = '#cbd5e1'; ctx.fillRect(-5, -10, 10, 8);
-    ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(-12, 18); ctx.lineTo(-10, 5); ctx.lineTo(10, 5); ctx.lineTo(12, 18); ctx.stroke();
-    ctx.fillStyle = '#78350f'; ctx.beginPath(); ctx.moveTo(-11, 16); ctx.lineTo(-10, 10); ctx.lineTo(10, 10); ctx.lineTo(11, 16); ctx.fill();
-    const isRunning = Game.coffeeRunning; ctx.fillStyle = isRunning ? '#ef4444' : '#22c55e'; ctx.beginPath(); ctx.arc(15, -22, 3, 0, Math.PI*2); ctx.fill();
-  }
-
-  drawMicrowave(ctx) {
-    ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(0, 22, 35, 8, 0, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#f1f5f9'; ctx.beginPath(); ctx.roundRect(-30, -20, 60, 40, 6); ctx.fill();
-    const isRunning = Game.microwaveRunning; ctx.fillStyle = isRunning ? '#fcd34d' : '#334155'; ctx.beginPath(); ctx.roundRect(-25, -15, 35, 30, 4); ctx.fill();
-    ctx.fillStyle = '#cbd5e1'; ctx.fillRect(15, -15, 10, 30);
-    ctx.fillStyle = '#64748b'; ctx.beginPath(); ctx.arc(20, -8, 2, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(20, 0, 2, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(20, 8, 2, 0, Math.PI*2); ctx.fill();
-  }
-
-  drawPackageShelf(ctx) {
-    ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(0, 25, 35, 8, 0, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#78350f'; ctx.fillRect(-30, -30, 5, 60); ctx.fillRect(25, -30, 5, 60);  
-    ctx.fillStyle = '#b45309'; ctx.fillRect(-30, -25, 60, 5); ctx.fillRect(-30, 0, 60, 5); ctx.fillRect(-30, 25, 60, 5);   
-    if (this.decorBoxes) {
-      this.decorBoxes.forEach((b, index) => {
-        const bx = b.x - b.w/2, by = b.y - b.h/2;
-        const boxColor = index % 2 === 0 ? '#d97706' : '#b45309'; 
-        ctx.fillStyle = boxColor; ctx.fillRect(bx, by, b.w, b.h);
-        ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 1; ctx.strokeRect(bx, by, b.w, b.h);
-        ctx.fillStyle = '#fcd34d'; ctx.fillRect(b.x - 2, by, 4, b.h); ctx.fillRect(bx, b.y - 4, b.w, 4);
-        if (index % 3 === 0) { ctx.fillStyle = '#ffffff'; ctx.fillRect(bx + b.w - 8, by + b.h - 6, 6, 4); }
-      });
-    }
-  }
-
-  drawCounter(ctx) {
-    const offsetY = 5;
-    ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(0, 30 + offsetY, 25, 6, 0, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#d97706'; ctx.beginPath(); ctx.roundRect(-23, 15 + offsetY, 46, 14, 4); ctx.fill();
-    ctx.fillStyle = '#92400e'; ctx.beginPath(); ctx.roundRect(-23, 25 + offsetY, 46, 6, 4); ctx.fill();
-    const machineY = offsetY - 2;
-    ctx.fillStyle = '#475569'; ctx.beginPath(); ctx.roundRect(-18, 8 + machineY, 36, 10, 3); ctx.fill();
-    ctx.fillStyle = '#1e293b'; ctx.fillRect(-5, -4 + machineY, 10, 12);
-    ctx.fillStyle = '#f1f5f9'; ctx.beginPath(); ctx.roundRect(-17, -26 + machineY, 34, 22, 4); ctx.fill();
-    ctx.fillStyle = '#cbd5e1'; ctx.beginPath(); ctx.roundRect(-10, -20 + machineY, 20, 4, 1); ctx.fill();
-    ctx.fillStyle = '#1e293b'; ctx.fillRect(-3, -30 + machineY, 6, 8); 
-    ctx.fillStyle = '#0f172a'; ctx.beginPath(); ctx.roundRect(-14, -38 + machineY, 28, 12, 3); ctx.fill();
-    ctx.fillStyle = '#000'; ctx.beginPath(); ctx.roundRect(-12, -36 + machineY, 24, 8, 1); ctx.fill();
-    const currentTotal = ScanPanel.isOpen ? ScanPanel.total : 0;
-    ctx.fillStyle = '#22c55e'; ctx.font = 'bold 8px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(`$${currentTotal}`, 0, -32 + machineY);
-    const printerX = 20;
-    ctx.fillStyle = '#94a3b8'; ctx.beginPath(); ctx.roundRect(printerX, -2 + machineY, 10, 12, 2); ctx.fill();
-    ctx.fillStyle = '#1e293b'; ctx.fillRect(printerX + 1, -4 + machineY, 8, 2);
-    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(printerX + 2, -3 + machineY); ctx.lineTo(printerX + 2, -8 + machineY); ctx.lineTo(printerX + 8, -8 + machineY); ctx.lineTo(printerX + 8, -3 + machineY); ctx.fill();
-  }
-
-  checkIsTarget() {
-    if (Game.playerHolding && Game.playerHolding.type !== 'package') return false;
-    if (Game.playerHolding && Game.playerHolding.type === 'package') return this.type === 'counter';
-    if (this.type === 'coffee') { 
-      if (Game.coffeeReady) return true;
-      if (Game.coffeeRunning) return false;
-      return !!TaskManager.findTaskByTypeAndStep('coffee', 'make'); 
-    }
-    if (this.type === 'microwave') { 
-      if (Game.microwaveReady) return true;
-      if (Game.microwaveRunning) return false;
-      return !!TaskManager.findTaskByTypeAndStep('bento', 'heat'); 
-    }
-    if (this.type === 'packages') { 
-      const task = TaskManager.findTaskByTypeAndStep('package', 'find');
-      return task && Game.currentTask === task;
-    }
-    if (this.type === 'counter') { 
-      if (TaskManager.findPayTask()) return true;
-      const packageTask = TaskManager.findTaskByTypeAndStep('package', 'find');
-      if (packageTask && Game.currentTask !== packageTask) return true;
-      if (TaskManager.findTaskByStep('checkout')) return true;
-      if (TaskManager.findTaskByTypeAndStep('checkout', 'scan')) return true;
-      return false;
-    }
-    return false;
-  }
-}
-
-class Particle {
-  constructor(x, y) { this.x = x; this.y = y; this.vx = (Math.random()-0.5)*4; this.vy = -Math.random()*5-2; this.life = 0; this.alive = true; this.size = 12;
-    const ui = document.getElementById('coin-display').getBoundingClientRect(); this.tx = ui.left + ui.width/2; this.ty = ui.top + ui.height/2; }
-  update() { this.life++; if (this.life < 12) { this.vy += 0.3; this.x += this.vx; this.y += this.vy; } else { this.x += (this.tx-this.x)*0.2; this.y += (this.ty-this.y)*0.2; this.size *= 0.9; } if (this.life > 40 || this.size < 2) this.alive = false; }
-  render(ctx) { ctx.font = `${this.size}px sans-serif`; ctx.textAlign = 'center'; ctx.fillText('🪙', this.x, this.y); }
-}
-
-class FloatingText {
-  constructor(x, y, text, color) { this.x = x; this.y = y; this.text = text; this.color = color; this.alpha = 1; this.alive = true; }
-  update() { this.y -= 1; this.alpha -= 0.03; if (this.alpha <= 0) this.alive = false; }
-  render(ctx) { ctx.globalAlpha = this.alpha; ctx.font = `bold ${FONT.FLOATING}px sans-serif`; ctx.textAlign = 'center'; ctx.fillStyle = this.color; ctx.fillText(this.text, this.x, this.y); ctx.globalAlpha = 1; }
-}
-
-const TaskManager = {
-  tasks: [],
-  coffeePhrases: {
-    '中杯美式熱': ['☕中杯熱美式', '☕美式 中杯 熱的', '☕熱美式 中杯'],
-    '中杯美式冰': ['☕中杯冰美式', '☕美式 中杯 冰的', '☕冰美式 中杯'],
-    '中杯拿鐵熱': ['☕中杯熱拿鐵', '☕拿鐵 中杯 熱的', '☕熱拿鐵 中杯'],
-    '中杯拿鐵溫': ['☕中杯溫拿鐵', '☕拿鐵 中杯 溫的', '☕溫拿鐵 中杯'],
-    '中杯拿鐵冰': ['☕中杯冰拿鐵', '☕拿鐵 中杯 冰的', '☕冰拿鐵 中杯'],
-    '大杯美式熱': ['☕大杯熱美式', '☕美式 大杯 熱的', '☕熱美式 大杯'],
-    '大杯美式冰': ['☕大杯冰美式', '☕美式 大杯 冰的', '☕冰美式 大杯'],
-    '大杯拿鐵熱': ['☕大杯熱拿鐵', '☕拿鐵 大杯 熱的', '☕熱拿鐵 大杯'],
-    '大杯拿鐵溫': ['☕大杯溫拿鐵', '☕拿鐵 大杯 溫的', '☕溫拿鐵 大杯'],
-    '大杯拿鐵冰': ['☕大杯冰拿鐵', '☕拿鐵 大杯 冰的', '☕冰拿鐵 大杯'],
-  },
-  getRandomCoffeeBubble(size, type, temp) {
-    const key = `${size}${type}${temp}`;
-    const phrases = this.coffeePhrases[key];
-    return phrases[Math.floor(Math.random() * phrases.length)];
-  },
-  templates: [
-    { type: 'coffee', name: '咖啡', coffee: {size:'中杯',type:'美式',temp:'熱'} },
-    { type: 'coffee', name: '咖啡', coffee: {size:'大杯',type:'拿鐵',temp:'冰'} },
-    { type: 'coffee', name: '咖啡', coffee: {size:'中杯',type:'拿鐵',temp:'溫'} },
-    { type: 'coffee', name: '咖啡', coffee: {size:'大杯',type:'美式',temp:'冰'} },
-    { type: 'bento', name: '三明治加熱', bubble: '🥪1分', microwave: 1 },
-    { type: 'bento', name: '御飯糰加熱', bubble: '🍙2分', microwave: 2 },
-    { type: 'bento', name: '便當加熱', bubble: '🍱3分', microwave: 3 },
-    { type: 'package', name: '領取包裹', bubble: '📦取件', packageCode: null },
-    { type: 'package', name: '領取包裹', bubble: '📦取件', packageCode: null },
-    { type: 'checkout', name: '購買商品', bubble: '🛒結帳', step: 'scan' },
-  ],
-  init() {
-    this.tasks = [];
-    const shuffled = [...this.templates].sort(() => Math.random()-0.5);
-    for (let i = 0; i < Game.totalOrders; i++) {
-      const t = { ...shuffled[i % shuffled.length], id: i, completed: false, started: false };
-      if (t.type === 'coffee') {
-        t.step = 'pay';
-        t.bubble = this.getRandomCoffeeBubble(t.coffee.size, t.coffee.type, t.coffee.temp);
-      }
-      else if (t.type === 'bento') t.step = 'pay';
-      else if (t.type === 'package') { t.step = 'find'; t.packageCode = String(Math.floor(Math.random()*900)+100); t.bubble = '📦' + t.packageCode; }
-      else if (t.type === 'checkout') t.step = 'scan';
-      this.tasks.push(t);
-    }
-  },
-  findTaskByTypeAndStep(type, step) { return this.tasks.find(t => t.started && !t.completed && t.type === type && t.step === step); },
-  findTaskByStep(step) { return this.tasks.find(t => t.started && !t.completed && t.step === step); },
-  getAnyActiveTask() { return this.tasks.find(t => t.started && !t.completed); },
-  getNextPending() { return this.tasks.find(t => !t.started && !t.completed); },
-  findPayTask() { return this.tasks.find(t => t.started && !t.completed && (t.type === 'coffee' || t.type === 'bento') && t.step === 'pay'); },
-  
-  findFirstCounterTask() {
-    const queuedCustomers = Game.customers.filter(c => {
-      if (c.state === 'leaving') return false;
-      if (c.state === 'toWait') return false;
-      if (c.task.step === 'waiting' || c.task.step === 'make' || c.task.step === 'heat') return false;
-      if (c.task.completed) return false;
-      return true;
-    }).sort((a, b) => a.queuePosition - b.queuePosition);
-    if (queuedCustomers.length === 0) return null;
-    return queuedCustomers[0].task;
-  },
-  renderUI() {
-    const activeTasks = this.tasks.filter(t => t.started && !t.completed);
-    const nameEl = document.getElementById('task-name'), stepsEl = document.getElementById('task-steps');
-    if (activeTasks.length === 0) { nameEl.textContent = '等待顧客...'; stepsEl.innerHTML = ''; return; }
-    nameEl.textContent = `📋 ${activeTasks.length}位`;
-    stepsEl.innerHTML = '';
-    activeTasks.forEach(task => {
-      const span = document.createElement('span'); span.className = 'mini-step';
-      const needsAction = (
-        task.step === 'pay' || task.step === 'scan' || task.step === 'checkout' || task.step === 'make' || task.step === 'heat' || 
-        (task.step === 'find' && Game.currentTask === task) || 
-        (task.step === 'waiting' && task.type === 'coffee' && Game.coffeeReady) ||
-        (task.step === 'waiting' && task.type === 'bento' && Game.microwaveReady)
-      );
-      if (needsAction) { span.style.background = '#f59e0b'; } else { span.style.background = '#475569'; }
-      const icon = task.type === 'coffee' ? '☕' : task.type === 'bento' ? '🍱' : task.type === 'package' ? '📦' : '🛒';
-      span.textContent = icon;
-      stepsEl.appendChild(span);
-    });
-  }
-};
-
-const CustomerManager = {
-  spawnNext() {
-    const task = TaskManager.getNextPending(); if (!task) return;
-    const queuedCustomers = Game.customers.filter(c => {
-      if (c.state === 'leaving') return false;
-      if (c.state === 'toWait') return false;
-      if (c.task.step === 'waiting' || c.task.step === 'make' || c.task.step === 'heat') return false;
-      return true;
-    });
-    if (queuedCustomers.length >= 1) return;
-    task.started = true;
-    const queuePos = queuedCustomers.length;
-    const x = Game.width * 0.5;
-    const startY = Game.height + 30;
-    const targetY = Game.layout.customerStartY;
-    const customer = new Customer(x, startY, task);
-    customer.queuePosition = queuePos; 
-    customer.targetX = x; 
-    customer.targetY = targetY;
-    Game.customers.push(customer); 
-    Game.updateUI();
-  },
-  assignQueuePosition(customer) {
-    const queuedCustomers = Game.customers.filter(c => {
-      if (c === customer) return false;
-      if (c.state === 'leaving') return false;
-      if (c.state === 'toWait') return false;
-      if (c.task.step === 'waiting' || c.task.step === 'make' || c.task.step === 'heat') return false;
-      return true;
-    });
-    const queuePos = queuedCustomers.length;
-    customer.queuePosition = queuePos; 
-    customer.targetX = Game.width * 0.5; 
-    customer.targetY = Game.layout.customerStartY;
-  },
-  reorganizeQueue() {
-    const queuedCustomers = Game.customers.filter(c => {
-      if (c.state === 'leaving') return false;
-      if (c.state === 'toWait') return false;
-      if (c.task.step === 'waiting' || c.task.step === 'make' || c.task.step === 'heat') return false;
-      return true;
-    }).sort((a, b) => a.queuePosition - b.queuePosition);
-    queuedCustomers.forEach((c, i) => { c.queuePosition = i; c.targetX = Game.width * 0.5; c.targetY = Game.layout.customerStartY; });
-    if (queuedCustomers.length === 0) { setTimeout(() => this.spawnNext(), 100); }
-  }
-};
-
+// --- 面板邏輯 ---
 const Panels = {
   isOpen: false, currentTask: null, selected: {},
   init() {
-    document.querySelectorAll('#coffee-size-btns .panel-btn').forEach(b => b.onclick = () => this.sel('coffee','size',b.dataset.v));
-    document.querySelectorAll('#coffee-type-btns .panel-btn').forEach(b => b.onclick = () => this.sel('coffee','type',b.dataset.v));
-    document.querySelectorAll('#coffee-temp-btns .panel-btn').forEach(b => b.onclick = () => this.sel('coffee','temp',b.dataset.v));
-    document.getElementById('coffee-confirm').onclick = () => this.confirmCoffee();
-    document.querySelectorAll('#microwave-time-btns .panel-btn').forEach(b => b.onclick = () => this.sel('microwave','time',b.dataset.v));
-    document.getElementById('microwave-confirm').onclick = () => this.confirmMicrowave();
+    ['coffee-size', 'coffee-type', 'coffee-temp', 'microwave-time'].forEach(group => {
+      document.querySelectorAll(`#${group}-btns .panel-btn`).forEach(b => {
+        b.onclick = () => { Tracker.recordInteraction(); this.sel(group.split('-')[0], group.split('-')[1], b.dataset.v); }
+      });
+    });
+    document.getElementById('coffee-confirm').onclick = () => { Tracker.recordInteraction(); this.confirmCoffee(); };
+    document.getElementById('microwave-confirm').onclick = () => { Tracker.recordInteraction(); this.confirmMicrowave(); };
   },
   sel(panel, key, val) {
     this.selected[key] = val;
     document.getElementById(`${panel}-${key}-btns`).querySelectorAll('.panel-btn').forEach(b => b.classList.toggle('selected', b.dataset.v === val));
     if (panel === 'coffee') document.getElementById('coffee-confirm').disabled = !(this.selected.size && this.selected.type && this.selected.temp);
-    else if (panel === 'microwave') document.getElementById('microwave-confirm').disabled = !this.selected.time;
+    else document.getElementById('microwave-confirm').disabled = !this.selected.time;
   },
-  showCoffee(task) { 
-    this.isOpen = true; this.currentTask = task; this.selected = {}; 
-    document.querySelectorAll('#coffee-panel .panel-btn').forEach(b => b.classList.remove('selected')); 
-    document.getElementById('coffee-confirm').disabled = true;
-    const c = task.coffee;
-    const orderText = `☕ ${c.size}${c.temp}${c.type}`;
-    document.getElementById('coffee-order-display').innerHTML = `<div style="font-size:13px;color:#9ca3af;margin-bottom:4px;">▶ 請製作</div>${orderText}`;
-    document.getElementById('coffee-panel').classList.add('show'); 
-  },
-  showMicrowave(task) { 
-    this.isOpen = true; this.currentTask = task; this.selected = {}; 
-    document.querySelectorAll('#microwave-panel .panel-btn').forEach(b => b.classList.remove('selected')); 
-    document.getElementById('microwave-confirm').disabled = true;
-    const emoji = task.microwave === 1 ? '🥪' : task.microwave === 2 ? '🍙' : '🍱';
-    const name = task.microwave === 1 ? '三明治' : task.microwave === 2 ? '御飯糰' : '便當';
-    const orderText = `${emoji} ${name}（${task.microwave}分鐘）`;
-    document.getElementById('microwave-order-display').innerHTML = `<div style="font-size:13px;color:#9ca3af;margin-bottom:4px;">▶ 請微波</div>${orderText}`;
-    document.getElementById('microwave-panel').classList.add('show'); 
-  },
-  showPackage(task) {
-    this.isOpen = true; this.currentTask = task;
-    document.getElementById('package-order-display').textContent = '🔍 尋找：' + task.packageCode;
+  showCoffee(task) { this.isOpen=true; this.currentTask=task; this.selected={}; document.querySelectorAll('#coffee-panel .panel-btn').forEach(b=>b.classList.remove('selected')); document.getElementById('coffee-panel').classList.add('show'); document.getElementById('coffee-confirm').disabled=true;},
+  showMicrowave(task) { this.isOpen=true; this.currentTask=task; this.selected={}; document.querySelectorAll('#microwave-panel .panel-btn').forEach(b=>b.classList.remove('selected')); document.getElementById('microwave-panel').classList.add('show'); document.getElementById('microwave-confirm').disabled=true;},
+  showPackage(task) { 
+    this.isOpen=true; this.currentTask=task; 
     const grid = document.getElementById('package-grid'); grid.innerHTML = '';
-    const codes = [task.packageCode]; while (codes.length < 12) { const c = String(Math.floor(Math.random()*900)+100); if (!codes.includes(c)) codes.push(c); }
-    codes.sort(() => Math.random()-0.5);
-    codes.forEach(code => { const btn = document.createElement('button'); btn.className = 'package-btn'; btn.textContent = code; btn.onclick = () => this.selectPackage(code); grid.appendChild(btn); });
+    const codes = [task.packageCode]; while(codes.length<8){ const c=String(Math.floor(Math.random()*900)+100); if(!codes.includes(c)) codes.push(c); }
+    codes.sort(()=>Math.random()-0.5).forEach(code => {
+      const btn = document.createElement('button'); btn.className = 'package-btn'; btn.textContent = code;
+      btn.onclick = () => { Tracker.recordInteraction(); this.selectPackage(code); }; grid.appendChild(btn);
+    });
     document.getElementById('package-panel').classList.add('show');
   },
   selectPackage(code) {
-    const task = this.currentTask; 
-    this.hide();
-    if (code === task.packageCode) { 
-      task.step = 'checkout'; 
-      Game.playerHolding = { type: 'package', emoji: '📦' };
-      Game.addCoins(15, Game.stations[3].x, Game.stations[3].y); 
-      Game.correctSteps++; Game.totalSteps++; 
-      Game.showToast('✅ 找到包裹！請回櫃台結帳', 'success'); 
-    }
-    else { Game.totalSteps++; Game.showToast('❌ 號碼不對！'); Game.stations[3].doShake(); }
-    Game.updateUI();
+    if(code === this.currentTask.packageCode) { this.currentTask.step = 'checkout'; Game.playerHolding = {type:'package', emoji:'📦'}; Game.showToast('找到包裹', 'success'); this.hide(); }
+    else { Tracker.recordInteraction(true); Game.showToast('號碼不對'); }
   },
-  confirmCoffee() { 
-    const t = this.currentTask; const c = t.coffee; const selected = { ...this.selected };  
-    this.hide(); 
-    if (selected.size === c.size && selected.type === c.type && selected.temp === c.temp) { 
-      Game.startCoffee(t); Game.showToast('☕ 開始沖泡！', 'success'); 
-    } else { 
-      Game.totalSteps++; Game.showToast('❌ 選擇錯誤！'); Game.stations[1].doShake(); 
-    } 
-    Game.updateUI(); 
+  confirmCoffee() { Game.coffeeRunning = true; this.currentTask.step = 'waiting'; this.hide(); Game.showToast('開始沖泡', 'success'); },
+  confirmMicrowave() { Game.microwaveRunning = true; this.currentTask.step = 'waiting'; this.hide(); Game.showToast('開始加熱', 'success'); },
+  hide() { this.isOpen=false; document.querySelectorAll('.action-panel').forEach(p=>p.classList.remove('show')); }
+};
+
+const ScanPanel = {
+  isOpen: false, currentTask: null, items: [], total: 0,
+  init() { document.getElementById('scan-confirm').onclick = () => { Tracker.recordInteraction(); this.complete(false); }; },
+  show(task) {
+    this.isOpen=true; this.currentTask=task; this.total=0; this.items=[{icon:'🥤', price:25, s:false}, {icon:'🍙', price:35, s:false}];
+    this.render(); document.getElementById('scan-panel').classList.add('show');
   },
-  confirmMicrowave() { 
-    const t = this.currentTask; const selectedTime = this.selected.time;  
-    this.hide(); 
-    if (parseInt(selectedTime) === t.microwave) { 
-      Game.startMicrowave(t); Game.showToast('🔥 開始加熱！', 'success'); 
-    } else { 
-      Game.totalSteps++; Game.showToast('❌ 時間錯誤！'); Game.stations[2].doShake(); 
-    } 
-    Game.updateUI(); 
+  render() {
+    const el = document.getElementById('scan-items'); el.innerHTML = '';
+    this.items.forEach(i => {
+      const d = document.createElement('div'); d.className = 'scan-item' + (i.s ? ' scanned' : ''); d.textContent = i.icon;
+      d.onclick = () => { Tracker.recordInteraction(); if(!i.s) { i.s=true; this.total+=i.price; this.render(); } }; el.appendChild(d);
+    });
+    document.getElementById('scan-confirm').disabled = !this.items.every(i=>i.s);
   },
-  hide() { 
-    this.isOpen = false; this.currentTask = null; this.selected = {};  
-    document.querySelectorAll('.action-panel').forEach(p => p.classList.remove('show')); 
+  complete(forced) {
+    this.isOpen=false; document.getElementById('scan-panel').classList.remove('show');
+    if(!forced) { this.currentTask.step = 'done'; Game.completeTask(this.currentTask); }
   }
 };
 
+// --- 無縫補貨測驗 (Phase 2) ---
 const RestockGame = {
-  isOpen: false, items: [], score: 0, mistakes: 0, bonusCoins: 0, penaltyCoins: 0, timeLeft: 10, timer: null, spawnTimer: null, maxItems: 12, spawnedCount: 0, gridPositions: [], restockStartTime: 0,  
-  products: [
-    { icon: '🥤', name: '可樂' }, { icon: '🥛', name: '鮮奶' }, { icon: '🍙', name: '飯糰' }, { icon: '🧃', name: '果汁' }, { icon: '🍞', name: '麵包' }, { icon: '🥪', name: '三明治' },
-  ],
-  initGridPositions() {
-    this.gridPositions = [];
-    const cols = 3, rows = 3;
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        this.gridPositions.push({ x: 18 + c * 32, y: 18 + r * 32, occupied: false });
-      }
-    }
-  },
-  getFreePosition() {
-    const freeSlots = this.gridPositions.filter(p => !p.occupied);
-    if (freeSlots.length === 0) return null;
-    const slot = freeSlots[Math.floor(Math.random() * freeSlots.length)];
-    slot.occupied = true; return { x: slot.x, y: slot.y, slot: slot };
-  },
-  start() { document.getElementById('restock-intro-screen').classList.add('show'); },
-  startGame() {
-    document.getElementById('restock-intro-screen').classList.remove('show');
-    this.restockStartTime = Date.now();
-    this.isOpen = true; this.items = []; this.score = 0; this.mistakes = 0; this.bonusCoins = 0; this.penaltyCoins = 0; this.timeLeft = 10; this.spawnedCount = 0;
-    this.initGridPositions();
+  isOpen: false, timer: null, score: 0, mistakes: 0,
+  products: ['🥤','牛奶','🍙','🍞','🥪'],
+  startGameSeamlessly() {
+    this.isOpen = true; this.score = 0; this.mistakes = 0;
+    document.getElementById('restock-panel').classList.add('show');
     document.getElementById('restock-items').innerHTML = '';
-    const panel = document.getElementById('restock-panel'); panel.classList.add('show');
-    this.updateScoreDisplay(); document.getElementById('restock-time').style.width = '100%';
-    this.timer = setInterval(() => {
-      this.timeLeft -= 0.05;
-      document.getElementById('restock-time').style.width = Math.max(0, this.timeLeft / 10 * 100) + '%';
-      if (this.timeLeft <= 0) { this.end(); }
-    }, 50);
-    this.spawnItem(); this.spawnTimer = setInterval(() => this.spawnItem(), 900);
+    this.updateScore();
+    this.timer = setInterval(() => this.spawnItem(), 600); // 高頻率產生干擾
   },
   spawnItem() {
-    if (this.spawnedCount >= this.maxItems) return;
-    const pos = this.getFreePosition(); if (!pos) return;  
-    const isExpired = Math.random() < 0.3;
-    const product = this.products[Math.floor(Math.random() * this.products.length)];
-    const item = { id: Date.now() + Math.random(), icon: product.icon, name: product.name, expired: isExpired, x: pos.x, y: pos.y, slot: pos.slot, alive: true, element: null };
-    this.items.push(item); this.spawnedCount++;
-    this.createItemElement(item);
-    setTimeout(() => { if (item.alive) { this.itemTimeout(item); } }, 2500);
-  },
-  createItemElement(item) {
-    const container = document.getElementById('restock-items'); const div = document.createElement('div');
-    div.className = 'restock-item' + (item.expired ? ' expired' : '');
-    div.style.left = item.x + '%'; div.style.top = item.y + '%';
-    div.innerHTML = `<span class="item-icon">${item.icon}</span>${item.expired ? '<span class="expired-mark">⚠️過期</span>' : ''}`;
-    div.onclick = (e) => { e.stopPropagation(); this.tapItem(item); };
-    container.appendChild(div); item.element = div;
-    requestAnimationFrame(() => { div.classList.add('pop-in'); });
-  },
-  tapItem(item) {
-    if (!item.alive || !item.element) return;
-    item.alive = false;
-    const container = document.getElementById('restock-items'); const rect = item.element.getBoundingClientRect(); const containerRect = container.getBoundingClientRect();
-    if (item.expired) {
-      this.mistakes++; this.penaltyCoins += 10; Game.coins = Math.max(0, Game.coins - 10); Game.totalSteps++;
-      item.element.classList.add('wrong'); this.showFeedback(item, '❌ -10', '#ef4444');
-    } else {
-      this.score++; this.bonusCoins += 8; Game.coins += 8; Game.correctSteps++; Game.totalSteps++;
-      item.element.classList.add('correct'); this.showFeedback(item, '✓ +8', '#22c55e');
-      this.spawnCoinParticles(rect.left - containerRect.left + rect.width/2, rect.top - containerRect.top + rect.height/2);
-    }
-    if (item.slot) item.slot.occupied = false;
-    setTimeout(() => { if (item.element) { item.element.remove(); item.element = null; } }, 300);
-    this.updateScoreDisplay();
-  },
-  itemTimeout(item) {
-    if (!item.alive) return;
-    item.alive = false;
-    if (item.expired) {
-      this.score++; Game.correctSteps++; Game.totalSteps++;
-      if (item.element) { item.element.classList.add('fade-out-ok'); }
-    } else {
-      this.mistakes++; Game.totalSteps++;
-      if (item.element) { item.element.classList.add('missed'); }
-    }
-    if (item.slot) item.slot.occupied = false;
-    setTimeout(() => { if (item.element) { item.element.remove(); item.element = null; } }, 400);
-    this.updateScoreDisplay();
-  },
-  showFeedback(item, text, color) {
-    const container = document.getElementById('restock-items'); const feedback = document.createElement('div');
-    feedback.className = 'restock-feedback'; feedback.style.left = item.x + '%'; feedback.style.top = item.y + '%';
-    feedback.style.color = color; feedback.textContent = text;
-    container.appendChild(feedback); setTimeout(() => feedback.remove(), 600);
-  },
-  spawnCoinParticles(x, y) {
+    if(!this.isOpen) return;
     const container = document.getElementById('restock-items');
-    for (let i = 0; i < 5; i++) {
-      const coin = document.createElement('div'); coin.className = 'restock-coin'; coin.textContent = '🪙';
-      coin.style.left = x + 'px'; coin.style.top = y + 'px';
-      coin.style.setProperty('--dx', (Math.random() - 0.5) * 60 + 'px'); coin.style.setProperty('--dy', -30 - Math.random() * 40 + 'px');
-      container.appendChild(coin); setTimeout(() => coin.remove(), 600);
-    }
+    const isExpired = Math.random() < 0.4; // 40% 機率是過期品 (No-Go)
+    const div = document.createElement('div');
+    div.className = 'restock-item pop-in' + (isExpired ? ' expired' : '');
+    div.style.left = (20 + Math.random()*60) + '%'; div.style.top = (20 + Math.random()*60) + '%';
+    div.innerHTML = `<span class="item-icon">${this.products[Math.floor(Math.random()*this.products.length)]}</span>`;
+    
+    div.onclick = (e) => { 
+      e.stopPropagation(); 
+      Tracker.recordRestockTap(!isExpired);
+      if(isExpired) { this.mistakes++; div.classList.add('wrong'); }
+      else { this.score++; div.classList.add('correct'); Game.coins += 8; document.getElementById('coin-value').textContent = Game.coins; }
+      this.updateScore();
+      setTimeout(()=> div.remove(), 200);
+    };
+    container.appendChild(div);
+    setTimeout(()=> { if(div.parentElement) div.remove(); }, 1200); // 物品消失極快，製造壓力
   },
-  updateScoreDisplay() { document.getElementById('restock-score').textContent = this.score; document.getElementById('restock-mistakes').textContent = this.mistakes; },
-  end() {
-    clearInterval(this.timer); clearInterval(this.spawnTimer); this.isOpen = false;
-    this.items.forEach(item => { if (item.element) item.element.remove(); });
-    document.getElementById('restock-panel').classList.remove('show');
-    Game.restockResult = { score: this.score, mistakes: this.mistakes, bonusCoins: this.bonusCoins, penaltyCoins: this.penaltyCoins, netCoins: this.bonusCoins - this.penaltyCoins };
-    const net = this.bonusCoins - this.penaltyCoins; const msg = net >= 0 ? `📦 補貨完成！+${net} 金幣` : `📦 補貨完成！${net} 金幣`;
-    Game.showToast(msg, net >= 0 ? 'success' : '');
-    setTimeout(() => Game.endGame(), 1000);
+  updateScore() {
+    document.getElementById('restock-score').textContent = this.score;
+    document.getElementById('restock-mistakes').textContent = this.mistakes;
+  },
+  end() { this.isOpen = false; clearInterval(this.timer); document.getElementById('restock-panel').classList.remove('show'); }
+};
+
+// --- 簡化的類別 ---
+class Player {
+  constructor(x,y) { this.x=x; this.y=y; this.tx=x; this.ty=y; this.speed=10; this.moving=false; this.onArrive=null; }
+  moveTo(x,y,cb) { this.tx=x; this.ty=y; this.moving=true; this.onArrive=cb; }
+  update() {
+    if(!this.moving) return;
+    const dx=this.tx-this.x, dy=this.ty-this.y, d=Math.hypot(dx,dy);
+    if(d<this.speed) { this.x=this.tx; this.y=this.ty; this.moving=false; if(this.onArrive) { this.onArrive(); this.onArrive=null;} }
+    else { this.x += dx/d*this.speed; this.y += dy/d*this.speed; }
+  }
+  render(ctx, holding) { ctx.fillStyle='#3b82f6'; ctx.beginPath(); ctx.arc(this.x, this.y, 16, 0, Math.PI*2); ctx.fill(); if(holding) { ctx.font='20px sans-serif'; ctx.fillText(holding.emoji, this.x-10, this.y-20); } }
+}
+
+class Customer {
+  constructor(task) { this.x=Game.width/2; this.y=Game.height+20; this.task=task; this.alive=true; this.state='entering'; }
+  leave() { this.state='leaving'; }
+  update() {
+    if(this.state==='entering') { this.y -= 5; if(this.y < Game.layout.counterY + 40) this.state='waiting'; }
+    else if(this.state==='leaving') { this.y += 5; if(this.y > Game.height+20) this.alive=false; }
+  }
+  render(ctx) {
+    if(Game.phase===2) return; // 補貨階段隱藏
+    ctx.fillStyle='#ef4444'; ctx.beginPath(); ctx.arc(this.x, this.y, 14, 0, Math.PI*2); ctx.fill();
+    if(this.state==='waiting' && !this.task.completed) {
+      ctx.fillStyle='white'; ctx.font='14px sans-serif'; ctx.fillText(this.task.bubble, this.x+20, this.y-10);
+    }
+  }
+}
+
+class Station {
+  constructor(type,x,y,size,icon,name) { this.type=type; this.x=x; this.y=y; this.size=size; this.name=name; }
+  render(ctx) { ctx.fillStyle='#4b5563'; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill(); ctx.fillStyle='white'; ctx.font='14px sans-serif'; ctx.fillText(this.name, this.x-20, this.y+this.size+15); }
+}
+
+const TaskManager = {
+  tasks: [],
+  templates: [
+    { type: 'coffee', step: 'pay', bubble: '☕咖啡', coffee: {size:'中杯',type:'美式',temp:'熱'} },
+    { type: 'bento', step: 'pay', bubble: '🍱微波', microwave: 2 },
+    { type: 'package', step: 'find', bubble: '📦取件', packageCode: '123' },
+    { type: 'checkout', step: 'scan', bubble: '🛒結帳' }
+  ],
+  init() { this.tasks = []; },
+  spawn() {
+    const t = JSON.parse(JSON.stringify(this.templates[Math.floor(Math.random()*this.templates.length)]));
+    t.id = Date.now() + Math.random(); t.completed = false;
+    if(t.type === 'package') { t.packageCode = String(Math.floor(Math.random()*900)+100); t.bubble = '📦'+t.packageCode; }
+    this.tasks.push(t); Tracker.taskAppeared(t.id, t.type); return t;
+  },
+  findTaskByTypeAndStep(type, step) { return this.tasks.find(t => !t.completed && t.type === type && t.step === step); },
+  findFirstCounterTask() { return this.tasks.find(t => !t.completed && (t.step==='pay' || t.step==='find' || t.step==='scan')); },
+  renderUI() {
+    const active = this.tasks.filter(t => !t.completed);
+    document.getElementById('task-name').textContent = active.length ? '處理中...' : '等待顧客...';
   }
 };
 
-function initGame(input) { if (input && input.session_id) { Game.sessionId = input.session_id; } Game.init(); }
-function toggleDbOutput() { const container = document.getElementById('db-output-container'); container.classList.toggle('show'); }
-
-window.onload = () => { if (typeof gameInput !== 'undefined') { initGame(gameInput); } else { Game.init(); } };
+const CustomerManager = {
+  spawnNext() {
+    if(Game.phase === 2 || Game.state !== 'playing') return;
+    if(Game.customers.length === 0) {
+      const task = TaskManager.spawn();
+      Game.customers.push(new Customer(task));
+      TaskManager.renderUI();
+    }
+  }
+};
 </script>
 </body>
 </html>
