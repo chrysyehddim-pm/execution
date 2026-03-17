@@ -9,7 +9,131 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
 
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * { margin: 0; padding: 0<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>24H超商一日店長(執行力) PoC版</title>
+  
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="rotate-notice">
+  <div style="font-size:70px; margin-bottom:20px;">📱</div>
+  <h2>請將手機轉為直式</h2>
+</div>
+
+<div id="game-container">
+  <canvas id="game-canvas"></canvas>
+  
+  <div id="top-ui">
+    <div class="stat-box"><span class="icon">📋</span><span id="order-progress">0</span></div>
+    <div class="stat-box"><span class="icon">⏱️</span><span id="time-display">0:60</span></div>
+    <div class="stat-box" id="coin-display"><span class="icon">💰</span><span class="value" id="coin-value">0</span></div>
+  </div>
+  
+  <div id="current-task-bar">
+    <span class="task-name" id="task-name">等待顧客...</span>
+    <div class="task-steps" id="task-steps"></div>
+  </div>
+  
+  <div class="action-panel" id="coffee-panel">
+    <h3>☕ 咖啡機</h3>
+    <div class="panel-order" id="coffee-order-display"></div>
+    <div class="panel-options"><label>杯型</label><div class="btn-group" id="coffee-size-btns">
+      <button class="panel-btn" data-v="中杯">中杯</button><button class="panel-btn" data-v="大杯">大杯</button>
+    </div></div>
+    <div class="panel-options"><label>飲品</label><div class="btn-group" id="coffee-type-btns">
+      <button class="panel-btn" data-v="美式">☕美式</button><button class="panel-btn" data-v="拿鐵">🥛拿鐵</button>
+    </div></div>
+    <div class="panel-options"><label>溫度</label><div class="btn-group" id="coffee-temp-btns">
+      <button class="panel-btn" data-v="熱">🔥熱</button><button class="panel-btn" data-v="冰">🧊冰</button>
+    </div></div>
+    <button class="panel-confirm" id="coffee-confirm" disabled>✓ 開始製作</button>
+    <button class="panel-cancel" onclick="Panels.hide()">取消</button>
+  </div>
+  
+  <div class="action-panel" id="microwave-panel">
+    <h3>🔥 微波爐</h3>
+    <div class="panel-order" id="microwave-order-display"></div>
+    <div class="panel-options"><label>加熱時間</label><div class="btn-group" id="microwave-time-btns">
+      <button class="panel-btn" data-v="1">🥪 1分</button><button class="panel-btn" data-v="2">🍙 2分</button><button class="panel-btn" data-v="3">🍱 3分</button>
+    </div></div>
+    <button class="panel-confirm" id="microwave-confirm" disabled>✓ 開始加熱</button>
+    <button class="panel-cancel" onclick="Panels.hide()">取消</button>
+  </div>
+  
+  <div class="action-panel" id="package-panel">
+    <h3>📦 包裹架</h3>
+    <div class="panel-order" id="package-order-display">尋找包裹：</div>
+    <div class="package-grid" id="package-grid"></div>
+    <button class="panel-cancel" onclick="Panels.hide()">取消</button>
+  </div>
+  
+  <div id="scan-panel">
+    <h3>🛒 掃描商品結帳</h3>
+    <div class="scan-area" id="scan-area"><div class="scanner">📱</div><div class="hint">👆 點擊所有商品</div></div>
+    <div class="scan-items" id="scan-items"></div>
+    <button class="panel-confirm" id="scan-confirm" disabled>💳 結帳完成</button>
+  </div>
+
+  <div id="restock-panel">
+    <div class="restock-box">
+      <div class="restock-header">
+        <span class="restock-title">⚠️ 突發補貨！</span>
+        <div class="restock-scores">
+          <div class="restock-score-box correct"><span id="restock-score">0</span></div>
+          <div class="restock-score-box wrong"><span id="restock-mistakes">0</span></div>
+        </div>
+      </div>
+      <div class="restock-items" id="restock-items"></div>
+    </div>
+  </div>
+  
+  <div id="toast"></div>
+  
+  <div id="result-screen">
+    <div class="result-title">🏪 測驗結束</div>
+    
+    <div class="result-stats">
+      <div class="metric-row"><span>總營業額 (完成單數)</span><span id="res-orders">0</span></div>
+      <div class="metric-row"><span>處理反應時間 (ms)</span><span id="res-rt">0</span></div>
+      <div class="metric-row"><span>衝動性錯誤 (干擾點擊)</span><span id="res-commission">0</span></div>
+      <div class="metric-row"><span>規則重置延遲 (ms)</span><span id="res-reconfig">0</span></div>
+      <div class="metric-row"><span>微觀停頓/無效操作</span><span id="res-redundant">0</span></div>
+    </div>
+    
+    <div id="upload-status" class="upload-status" style="display:none;"></div>
+    <button id="retry-btn" class="start-btn" onclick="Game.restart()">重新測驗 🔄</button>
+
+    <button class="db-toggle-btn" onclick="document.getElementById('db-output-container').classList.toggle('show')">📤</button>
+    <div id="db-output-container">
+      <button class="db-close-btn" onclick="this.parentElement.classList.remove('show')">✕</button>
+      <div style="font-size:12px;color:#9ca3af;margin-bottom:5px;">Payload (JSON)</div>
+      <pre id="db-output"></pre>
+    </div>
+  </div>
+  
+  <div id="start-screen">
+    <div class="start-icon">🏪</div>
+    <div class="start-title">24H超商一日店長<br><span style="font-size: 20px; color:#fbbf24;">(執行力 PoC 版)</span></div>
+    <div class="start-subtitle">60秒高壓壓力測試</div>
+    
+    <div class="input-group">
+      <input type="text" id="playerName" class="input-field" placeholder="請輸入姓名">
+      <input type="number" id="playerAge" class="input-field" placeholder="請輸入年齡 (歲)">
+    </div>
+    <button class="start-btn" onclick="initGameSession()">開始挑戰 🚀</button>
+  </div>
+</div>
+
+<script src="game.js"></script>
+</body>
+</html>; box-sizing: border-box; }
     html, body { width: 100%; height: 100%; height: 100dvh; overflow: hidden; position: fixed; background: #0f172a; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif; touch-action: none; -webkit-user-select: none; user-select: none; font-size: 18px; }
     #game-container { position: relative; width: 100%; height: 100%; height: 100dvh; max-width: 500px; margin: 0 auto; overflow: hidden; background: #1e293b; }
