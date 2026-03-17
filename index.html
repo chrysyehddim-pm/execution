@@ -111,12 +111,42 @@
   <div id="result-screen">
     <div class="result-title">🏪 測驗結束</div>
     
-    <div class="result-stats">
-      <div class="metric-row"><span>總營業額 (完成單數)</span><span id="res-orders">0</span></div>
-      <div class="metric-row"><span>處理反應時間 (ms)</span><span id="res-rt">0</span></div>
-      <div class="metric-row"><span>衝動性錯誤 (干擾點擊)</span><span id="res-commission">0</span></div>
-      <div class="metric-row"><span>規則重置延遲 (ms)</span><span id="res-reconfig">0</span></div>
-      <div class="metric-row"><span>微觀停頓/無效操作</span><span id="res-redundant">0</span></div>
+<div class="result-stats">
+      <div class="metric-row">
+        <div class="metric-info">
+          <span>總營業額 (完成單數)</span>
+          <div class="metric-desc">衡量整體任務產出的基礎執行效率</div>
+        </div>
+        <span id="res-orders">0</span>
+      </div>
+      <div class="metric-row">
+        <div class="metric-info">
+          <span>處理反應時間 (ms)</span>
+          <div class="metric-desc">接收訂單到做出決策的思考時間 (越短越佳)</div>
+        </div>
+        <span id="res-rt">0</span>
+      </div>
+      <div class="metric-row">
+        <div class="metric-info">
+          <span>衝動性錯誤 (干擾點擊)</span>
+          <div class="metric-desc">面對干擾物時，大腦煞車與抑制衝動的能力</div>
+        </div>
+        <span id="res-commission">0</span>
+      </div>
+      <div class="metric-row">
+        <div class="metric-info">
+          <span>規則重置延遲 (ms)</span>
+          <div class="metric-desc">突發狀況下，大腦切換並適應新規則的敏捷度</div>
+        </div>
+        <span id="res-reconfig">0</span>
+      </div>
+      <div class="metric-row">
+        <div class="metric-info">
+          <span>微觀停頓/無效操作</span>
+          <div class="metric-desc">執行過程中的認知迷航或短期記憶遺失次數</div>
+        </div>
+        <span id="res-redundant">0</span>
+      </div>
     </div>
     
     <div id="upload-status" class="upload-status" style="display:none;"></div>
