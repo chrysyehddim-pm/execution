@@ -72,13 +72,24 @@
     <button class="panel-confirm" id="scan-confirm" disabled>💳 結帳完成</button>
   </div>
 
-  <div id="phase2-rules">
+<div id="phase2-rules">
     <div class="rule-card">
-      <div style="font-size: 50px; margin-bottom: 10px;">⚠️</div>
-      <h2 style="color: #f59e0b; margin-bottom: 15px;">突發補貨任務！</h2>
-      <p style="font-size: 18px; color: #d1d5db; margin-bottom: 10px;">請快速點擊畫面上的商品進行補貨。</p>
-      <p style="font-size: 18px; color: #ef4444; font-weight: bold; margin-bottom: 20px;">注意：請勿點擊【過期品】！</p>
-      <div style="font-size: 36px; font-weight: bold; color: #22c55e;" id="rule-countdown">5</div>
+      <div style="font-size: 40px; margin-bottom: 5px;">⚠️</div>
+      <h2 style="color: #f59e0b; margin-bottom: 10px;">突發補貨任務！</h2>
+      <p style="font-size: 16px; color: #d1d5db; margin-bottom: 15px;">快速點擊正常商品，<br><span style="color: #ef4444; font-weight: bold;">避開過期品！</span></p>
+      
+      <div class="demo-container">
+        <div class="demo-box">
+          <div class="demo-item normal"><span class="item-icon">🥤</span></div>
+          <div class="demo-label correct">⭕ 點擊 (得分)</div>
+        </div>
+        <div class="demo-box">
+          <div class="demo-item expired"><span class="item-icon">🍞</span><span class="expired-mark">⚠️過期</span></div>
+          <div class="demo-label wrong">❌ 避開 (扣分)</div>
+        </div>
+      </div>
+
+      <div style="font-size: 32px; font-weight: bold; color: #22c55e; margin-top: 10px;" id="rule-countdown">5</div>
     </div>
   </div>
 

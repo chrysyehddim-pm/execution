@@ -108,3 +108,22 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto
 
 #rotate-notice { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #1a1a2e; z-index: 9999; flex-direction: column; justify-content: center; align-items: center; color: white; }
 @media (orientation: landscape) and (max-height: 500px) { #rotate-notice { display: flex; } #game-container { display: none; } }
+
+/* 補貨規則視覺範例樣式 */
+.demo-container { display: flex; justify-content: center; gap: 20px; margin-bottom: 15px; background: rgba(0,0,0,0.3); padding: 15px 10px; border-radius: 12px; }
+.demo-box { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.demo-item { width: 60px; height: 60px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 3px solid #fbbf24; }
+.demo-item.normal { background: linear-gradient(135deg, #fef3c7, #fde68a); }
+.demo-item.expired { background: linear-gradient(135deg, #fecaca, #fca5a5); border-color: #ef4444; }
+.demo-item .item-icon { font-size: 28px; }
+.demo-item .expired-mark { font-size: 10px; color: #dc2626; font-weight: bold; margin-top: 2px; }
+.demo-label { font-size: 14px; font-weight: bold; }
+.demo-label.correct { color: #22c55e; }
+.demo-label.wrong { color: #ef4444; }
+
+/* 結帳指引動畫 */
+@keyframes checkoutPulse {
+  0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+  70% { box-shadow: 0 0 0 15px rgba(34, 197, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}

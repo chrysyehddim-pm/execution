@@ -192,17 +192,26 @@ const Game = {
     ];
   },
 
-  handleClick(e) {
+handleClick(e) {
     if (this.state !== 'playing' || this.phase === 2 || Panels.isOpen || ScanPanel.isOpen) { Tracker.recordInteraction(true); return; }
     const rect = this.canvas.getBoundingClientRect(); const x = e.clientX - rect.left, y = e.clientY - rect.top;
     
-    // 如果手上拿著東西，點擊等待區交餐
     if (this.playerHolding) {
       if (this.playerHolding.type === 'coffee' && Math.hypot(x - this.waitAreaLeft.x, y - this.waitAreaLeft.y) < 60) {
         this.player.moveTo(this.waitAreaLeft.x, this.layout.counterY - 20, () => this.deliverToWaitArea('coffee')); return;
       }
       if (this.playerHolding.type === 'bento' && Math.hypot(x - this.waitAreaRight.x, y - this.waitAreaRight.y) < 60) {
         this.player.moveTo(this.waitAreaRight.x, this.layout.counterY - 20, () => this.deliverToWaitArea('bento')); return;
+      }
+    }
+
+    // 新增：允許直接點擊「正在櫃檯等待的顧客」進行結帳/接單
+    const counterCustomer = this.customers.find(c => c.state === 'waiting' && c.targetX === this.width / 2);
+    if (counterCustomer) {
+      // 擴大點擊判定範圍 (包含顧客頭上的泡泡)
+      if (x > counterCustomer.x - 40 && x < counterCustomer.x + 40 && y > counterCustomer.y - 60 && y < counterCustomer.y + 30) {
+        this.player.moveTo(this.stations[0].x, this.layout.counterY - 40, () => this.interact(this.stations[0]));
+        return;
       }
     }
 
@@ -627,10 +636,29 @@ class Customer {
       ctx.font = `bold ${FONT.BUBBLE}px sans-serif`;
       const tw = ctx.measureText(txt).width + 16, th = 28;
       const bx = this.x + s + 10 + tw/2, by = y - 5;
-      ctx.fillStyle = 'rgba(255,255,255,0.95)'; 
+      
+      // 動態指引：如果在櫃檯等待結帳，對話框改為閃爍綠底
+      if (this.state === 'waiting' && this.targetX === Game.width / 2) {
+        ctx.shadowColor = '#22c55e';
+        ctx.shadowBlur = 10 + Math.sin(Date.now() / 150) * 10;
+        ctx.fillStyle = '#d1fae5'; 
+      } else {
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = 'rgba(255,255,255,0.95)'; 
+      }
+      
       ctx.beginPath(); ctx.roundRect(bx - tw/2, by - th/2, tw, th, 8); ctx.fill();
       ctx.beginPath(); ctx.moveTo(bx - tw/2, by - 5); ctx.lineTo(bx - tw/2, by + 5); ctx.lineTo(bx - tw/2 - 8, by); ctx.fill();
+      
+      ctx.shadowBlur = 0; 
       ctx.fillStyle = '#1e293b'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(txt, bx, by);
+
+      // 動態指引：頭頂跳動文字提示
+      if (this.state === 'waiting' && this.targetX === Game.width / 2) {
+        ctx.fillStyle = '#22c55e';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillText('👇點擊結帳', bx, by - 24 + Math.sin(Date.now() / 200) * 3);
+      }
     }
     ctx.globalAlpha = 1;
   }
