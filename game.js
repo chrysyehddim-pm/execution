@@ -205,11 +205,11 @@ handleClick(e) {
       }
     }
 
-    // 新增：允許直接點擊「正在櫃檯等待的顧客」進行結帳/接單
-    const counterCustomer = this.customers.find(c => c.state === 'waiting' && c.targetX === this.width / 2);
+    // 允許直接點擊「正在櫃檯等待的顧客」進行結帳/接單
+    const counterCustomer = this.customers.find(c => c.state === 'waiting' && c.targetX === this.width / 2 && !c.task.completed);
     if (counterCustomer) {
-      // 擴大點擊判定範圍 (包含顧客頭上的泡泡)
-      if (x > counterCustomer.x - 40 && x < counterCustomer.x + 40 && y > counterCustomer.y - 60 && y < counterCustomer.y + 30) {
+      // 以顧客身體為中心的點擊判定半徑
+      if (Math.hypot(x - counterCustomer.x, y - counterCustomer.y) < 50) {
         this.player.moveTo(this.stations[0].x, this.layout.counterY - 40, () => this.interact(this.stations[0]));
         return;
       }
@@ -611,10 +611,21 @@ class Customer {
     const y = this.y + bounce, s = this.size;
     const hx = this.x, hy = y - 12, hr = s/2.2;
 
+    // 身體發光提示：僅在櫃檯等待且尚未處理時發出黃色呼吸光
+    if (this.state === 'waiting' && this.targetX === Game.width / 2 && !this.task.completed) {
+      ctx.shadowColor = '#fbbf24';
+      ctx.shadowBlur = 15 + Math.sin(Date.now() / 150) * 10;
+    } else {
+      ctx.shadowBlur = 0;
+    }
+
     ctx.fillStyle = this.hairColor;
     if (this.hairStyle === 1) { ctx.beginPath(); ctx.moveTo(hx - hr, hy); ctx.lineTo(hx - hr - 2, hy + 16); ctx.lineTo(hx + hr + 2, hy + 16); ctx.lineTo(hx + hr, hy); ctx.fill(); }
     ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.beginPath(); ctx.ellipse(this.x, this.y + s/2 + 2, s/2, s/6, 0, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = this.color; ctx.beginPath(); ctx.roundRect(this.x - s/2, y - s/3, s, s, 10); ctx.fill();
+    
+    ctx.shadowBlur = 0; // 重置陰影，避免影響其他五官繪製
+
     ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.beginPath(); ctx.arc(this.x, y - 6, s/3, 0, Math.PI); ctx.fill();
     ctx.fillStyle = '#fce7f3'; ctx.beginPath(); ctx.arc(hx, hy, hr, 0, Math.PI * 2); ctx.fill();
 
@@ -631,34 +642,20 @@ class Customer {
     else if (this.hairStyle === 2) { ctx.arc(hx, hy, hr + 1, Math.PI, 0); ctx.fill(); ctx.beginPath(); ctx.arc(hx + 8, hy - 12, 6, 0, Math.PI * 2); } 
     else { ctx.arc(hx, hy - 4, hr - 0.5, Math.PI, 0); } ctx.fill();
 
-    if ((this.state === 'waiting' || this.state === 'toWait') && !this.task.completed) {
+    // 繪製對話框：僅在未結帳/找包裹階段顯示，一旦去等待區即徹底隱藏
+    const needsToSpeak = !this.task.completed && (this.task.step === 'pay' || this.task.step === 'find' || this.task.step === 'scan');
+    
+    if (needsToSpeak && (this.state === 'waiting' || this.state === 'entering')) {
       let txt = this.task.bubble;
       ctx.font = `bold ${FONT.BUBBLE}px sans-serif`;
       const tw = ctx.measureText(txt).width + 16, th = 28;
       const bx = this.x + s + 10 + tw/2, by = y - 5;
       
-      // 動態指引：如果在櫃檯等待結帳，對話框改為閃爍綠底
-      if (this.state === 'waiting' && this.targetX === Game.width / 2) {
-        ctx.shadowColor = '#22c55e';
-        ctx.shadowBlur = 10 + Math.sin(Date.now() / 150) * 10;
-        ctx.fillStyle = '#d1fae5'; 
-      } else {
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = 'rgba(255,255,255,0.95)'; 
-      }
-      
+      ctx.fillStyle = 'rgba(255,255,255,0.95)'; 
       ctx.beginPath(); ctx.roundRect(bx - tw/2, by - th/2, tw, th, 8); ctx.fill();
       ctx.beginPath(); ctx.moveTo(bx - tw/2, by - 5); ctx.lineTo(bx - tw/2, by + 5); ctx.lineTo(bx - tw/2 - 8, by); ctx.fill();
       
-      ctx.shadowBlur = 0; 
       ctx.fillStyle = '#1e293b'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(txt, bx, by);
-
-      // 動態指引：頭頂跳動文字提示
-      if (this.state === 'waiting' && this.targetX === Game.width / 2) {
-        ctx.fillStyle = '#22c55e';
-        ctx.font = 'bold 12px sans-serif';
-        ctx.fillText('👇點擊結帳', bx, by - 24 + Math.sin(Date.now() / 200) * 3);
-      }
     }
     ctx.globalAlpha = 1;
   }
