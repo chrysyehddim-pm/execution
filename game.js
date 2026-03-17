@@ -138,14 +138,46 @@ const Game = {
     setTimeout(() => CustomerManager.spawnNext(), 500);
   },
 
-  restart() { this.start(); },
+  returnToHome() {
+    document.getElementById('result-screen').classList.remove('show');
+    document.getElementById('start-screen').classList.remove('hide');
+    // 可選擇是否清空輸入框，目前保留方便快速重測
+  },
 
   triggerPhase2() {
     this.phase = 2; Panels.hide();
     if (ScanPanel.isOpen) ScanPanel.complete(true);
     this.canvas.style.filter = 'blur(4px) brightness(0.6)';
     document.getElementById('current-task-bar').style.display = 'none';
-    RestockGame.startGameSeamlessly(); Tracker.markPhase2Start();
+
+    // 暫停主計時器
+    clearInterval(this.timerInterval);
+    this.timerInterval = null;
+
+    // 顯示 5 秒規則畫面
+    const ruleScreen = document.getElementById('phase2-rules');
+    ruleScreen.classList.add('show');
+    
+    let countdown = 5;
+    const countEl = document.getElementById('rule-countdown');
+    countEl.textContent = countdown;
+
+    const cdInterval = setInterval(() => {
+      countdown--;
+      countEl.textContent = countdown;
+      if (countdown <= 0) {
+        clearInterval(cdInterval);
+        ruleScreen.classList.remove('show');
+        
+        // 5秒結束後，恢復遊戲並開始計算醫療指標
+        Tracker.markPhase2Start(); 
+        RestockGame.startGameSeamlessly();
+        this.timerInterval = setInterval(() => {
+          this.timeLeft--; this.updateTimeDisplay();
+          if (this.timeLeft <= 0) { clearInterval(this.timerInterval); this.endGame(); }
+        }, 1000);
+      }
+    }, 1000);
   },
   
   updateTimeDisplay() { document.getElementById('time-display').textContent = `0:${this.timeLeft.toString().padStart(2,'0')}`; },
@@ -241,7 +273,9 @@ const Game = {
     const customer = this.customers.find(c => c.task === task);
     if (customer) { 
       customer.state = 'toWait';
-      customer.targetX = task.type === 'coffee' ? this.waitAreaLeft.x : this.waitAreaRight.x;
+      // 加入稍微的擾動偏移，避免同一區等待的客人完全重疊
+      const offset = (Math.random() * 40) - 20;
+      customer.targetX = (task.type === 'coffee' ? this.waitAreaLeft.x : this.waitAreaRight.x) + offset;
       customer.targetY = task.type === 'coffee' ? this.waitAreaLeft.y : this.waitAreaRight.y;
     }
     this.currentTask = task;
@@ -310,9 +344,9 @@ const Game = {
 
   loop() {
     if (this.state === 'playing' && this.phase === 1) {
-      // 高速進度條機制
-      if (this.coffeeRunning) { this.coffeeProgress += 1.5; if(this.coffeeProgress>=100) { this.coffeeRunning = false; this.coffeeReady = true; this.coffeeProgress=0; }}
-      if (this.microwaveRunning) { this.microwaveProgress += 1.5; if(this.microwaveProgress>=100) { this.microwaveRunning = false; this.microwaveReady = true; this.microwaveProgress=0; }}
+      // 超高速進度條 (約 0.8~1 秒完成)
+      if (this.coffeeRunning) { this.coffeeProgress += 2.0; if(this.coffeeProgress>=100) { this.coffeeRunning = false; this.coffeeReady = true; this.coffeeProgress=0; }}
+      if (this.microwaveRunning) { this.microwaveProgress += 2.0; if(this.microwaveProgress>=100) { this.microwaveRunning = false; this.microwaveReady = true; this.microwaveProgress=0; }}
       this.player?.update();
       this.stations.forEach(s => s.update());
       this.customers.forEach(c => c.update());
@@ -444,7 +478,7 @@ const ScanPanel = {
 
 const RestockGame = {
   isOpen: false, timer: null, score: 0, mistakes: 0,
-  products: ['🥤','牛奶','🍙','🍞','🥪'],
+  products: ['🥤','🥛','🍙','🍞','🥪'], // 牛奶已改為Emoji
   startGameSeamlessly() {
     this.isOpen = true; this.score = 0; this.mistakes = 0;
     document.getElementById('restock-panel').classList.add('show');
@@ -637,8 +671,8 @@ class Station {
     const x = this.x, y = this.y - this.size - 20;
     
     if (ready) {
-      ctx.shadowColor = '#22c55e'; ctx.shadowBlur = 15;
-      ctx.fillStyle = '#22c55e'; ctx.font = '16px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('✅完成', x, y);
+      ctx.shadowColor = '#fbbf24'; ctx.shadowBlur = 20;
+      ctx.fillStyle = '#22c55e'; ctx.font = '18px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('✨完成', x, y);
       ctx.shadowBlur = 0;
     } else if (running) {
       const w = 40, h = 8;
@@ -710,31 +744,38 @@ class FloatingText {
   render(ctx) { ctx.globalAlpha = this.alpha; ctx.font = `bold ${FONT.FLOATING}px sans-serif`; ctx.textAlign = 'center'; ctx.fillStyle = this.color; ctx.fillText(this.text, this.x, this.y); ctx.globalAlpha = 1; }
 }
 
-// --- 複雜訂單與任務管理器 ---
+// --- 動態複合文案與任務管理器 ---
 const TaskManager = {
   tasks: [],
-  coffeePhrases: {
-    '中杯美式熱': ['☕中杯熱美式', '☕熱美式 中杯'], '中杯拿鐵冰': ['☕中杯冰拿鐵', '☕冰拿鐵 中杯'], '大杯美式冰': ['☕大杯冰美式', '☕冰美式 大杯']
-  },
   templates: [
-    { type: 'coffee', step: 'pay', coffee: {size:'中杯',type:'美式',temp:'熱'} },
-    { type: 'coffee', step: 'pay', coffee: {size:'大杯',type:'美式',temp:'冰'} },
-    { type: 'coffee', step: 'pay', coffee: {size:'中杯',type:'拿鐵',temp:'冰'} },
-    { type: 'bento', step: 'pay', bubble: '🍱微波3分', microwave: 3 },
-    { type: 'bento', step: 'pay', bubble: '🍙微波2分', microwave: 2 },
-    { type: 'package', step: 'find', packageCode: '123' },
+    { type: 'coffee', step: 'pay', coffee: {} },
+    { type: 'bento', step: 'pay', microwave: 0 },
+    { type: 'package', step: 'find', packageCode: '' },
     { type: 'checkout', step: 'scan', bubble: '🛒結帳' }
   ],
   init() { this.tasks = []; },
   spawn() {
     const t = JSON.parse(JSON.stringify(this.templates[Math.floor(Math.random()*this.templates.length)]));
     t.id = Date.now() + Math.random(); t.completed = false;
+    
+    // 動態文案生成
     if (t.type === 'coffee') {
-      const phrases = this.coffeePhrases[`${t.coffee.size}${t.coffee.type}${t.coffee.temp}`] || ['☕特調咖啡'];
-      t.bubble = phrases[Math.floor(Math.random() * phrases.length)];
+      const temps = ['熱', '溫', '冰'];
+      const sizes = ['中杯', '大杯'];
+      const types = ['美式', '拿鐵'];
+      t.coffee.temp = temps[Math.floor(Math.random() * temps.length)];
+      t.coffee.size = sizes[Math.floor(Math.random() * sizes.length)];
+      t.coffee.type = types[Math.floor(Math.random() * types.length)];
+      t.bubble = `☕${t.coffee.size}${t.coffee.temp}${t.coffee.type}`;
+    } else if (t.type === 'bento') {
+      t.microwave = Math.floor(Math.random() * 3) + 1; // 1, 2, 3 分鐘
+      const emoji = t.microwave === 1 ? '🥪' : t.microwave === 2 ? '🍙' : '🍱';
+      t.bubble = `${emoji}微波${t.microwave}分鐘`;
     } else if (t.type === 'package') { 
-      t.packageCode = String(Math.floor(Math.random()*900)+100); t.bubble = '📦'+t.packageCode; 
+      t.packageCode = String(Math.floor(Math.random()*900)+100); 
+      t.bubble = '📦'+t.packageCode; 
     }
+    
     this.tasks.push(t); Tracker.taskAppeared(t.id, t.type); return t;
   },
   findTaskByTypeAndStep(type, step) { return this.tasks.find(t => !t.completed && t.type === type && t.step === step); },
@@ -748,8 +789,6 @@ const TaskManager = {
 const CustomerManager = {
   spawnNext() {
     if(Game.phase === 2 || Game.state !== 'playing') return;
-    
-    // 防呆：只要櫃台空著，就立刻叫下一位，迫使玩家「同時處理多項任務」
     const hasCounterCustomer = Game.customers.some(c => !c.task.completed && (c.task.step === 'pay' || c.task.step === 'find' || c.task.step === 'scan'));
     if(!hasCounterCustomer) {
       const task = TaskManager.spawn();
