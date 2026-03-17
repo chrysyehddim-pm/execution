@@ -141,7 +141,6 @@ const Game = {
   returnToHome() {
     document.getElementById('result-screen').classList.remove('show');
     document.getElementById('start-screen').classList.remove('hide');
-    // 可選擇是否清空輸入框，目前保留方便快速重測
   },
 
   triggerPhase2() {
@@ -150,11 +149,9 @@ const Game = {
     this.canvas.style.filter = 'blur(4px) brightness(0.6)';
     document.getElementById('current-task-bar').style.display = 'none';
 
-    // 暫停主計時器
     clearInterval(this.timerInterval);
     this.timerInterval = null;
 
-    // 顯示 5 秒規則畫面
     const ruleScreen = document.getElementById('phase2-rules');
     ruleScreen.classList.add('show');
     
@@ -169,7 +166,6 @@ const Game = {
         clearInterval(cdInterval);
         ruleScreen.classList.remove('show');
         
-        // 5秒結束後，恢復遊戲並開始計算醫療指標
         Tracker.markPhase2Start(); 
         RestockGame.startGameSeamlessly();
         this.timerInterval = setInterval(() => {
@@ -192,7 +188,7 @@ const Game = {
     ];
   },
 
-handleClick(e) {
+  handleClick(e) {
     if (this.state !== 'playing' || this.phase === 2 || Panels.isOpen || ScanPanel.isOpen) { Tracker.recordInteraction(true); return; }
     const rect = this.canvas.getBoundingClientRect(); const x = e.clientX - rect.left, y = e.clientY - rect.top;
     
@@ -208,7 +204,6 @@ handleClick(e) {
     // 允許直接點擊「正在櫃檯等待的顧客」進行結帳/接單
     const counterCustomer = this.customers.find(c => c.state === 'waiting' && c.targetX === this.width / 2 && !c.task.completed);
     if (counterCustomer) {
-      // 以顧客身體為中心的點擊判定半徑
       if (Math.hypot(x - counterCustomer.x, y - counterCustomer.y) < 50) {
         this.player.moveTo(this.stations[0].x, this.layout.counterY - 40, () => this.interact(this.stations[0]));
         return;
@@ -282,13 +277,12 @@ handleClick(e) {
     const customer = this.customers.find(c => c.task === task);
     if (customer) { 
       customer.state = 'toWait';
-      // 加入稍微的擾動偏移，避免同一區等待的客人完全重疊
       const offset = (Math.random() * 40) - 20;
       customer.targetX = (task.type === 'coffee' ? this.waitAreaLeft.x : this.waitAreaRight.x) + offset;
       customer.targetY = task.type === 'coffee' ? this.waitAreaLeft.y : this.waitAreaRight.y;
     }
     this.currentTask = task;
-    setTimeout(() => CustomerManager.spawnNext(), 200); // 強制並行機制
+    setTimeout(() => CustomerManager.spawnNext(), 200);
   },
 
   deliverToWaitArea(type) {
@@ -353,7 +347,6 @@ handleClick(e) {
 
   loop() {
     if (this.state === 'playing' && this.phase === 1) {
-      // 超高速進度條 (約 0.8~1 秒完成)
       if (this.coffeeRunning) { this.coffeeProgress += 2.0; if(this.coffeeProgress>=100) { this.coffeeRunning = false; this.coffeeReady = true; this.coffeeProgress=0; }}
       if (this.microwaveRunning) { this.microwaveProgress += 2.0; if(this.microwaveProgress>=100) { this.microwaveRunning = false; this.microwaveReady = true; this.microwaveProgress=0; }}
       this.player?.update();
@@ -487,7 +480,7 @@ const ScanPanel = {
 
 const RestockGame = {
   isOpen: false, timer: null, score: 0, mistakes: 0,
-  products: ['🥤','🥛','🍙','🍞','🥪'], // 牛奶已改為Emoji
+  products: ['🥤','🥛','🍙','🍞','🥪'],
   startGameSeamlessly() {
     this.isOpen = true; this.score = 0; this.mistakes = 0;
     document.getElementById('restock-panel').classList.add('show');
@@ -499,12 +492,12 @@ const RestockGame = {
     if(!this.isOpen) return;
     const container = document.getElementById('restock-items');
     
-    // 邏輯修正：確保補貨階段的「第一個物品」絕對是正常商品，消除統計延遲誤差
+    // 強制錨點：首發必定為正常商品，避免統計延遲誤差
     let isExpired;
     if (this.score === 0 && this.mistakes === 0 && document.querySelectorAll('.restock-item').length === 0) {
-      isExpired = false; // 首發強制為正常商品
+      isExpired = false; 
     } else {
-      isExpired = Math.random() < 0.4; // 後續恢復 40% 機率為過期品
+      isExpired = Math.random() < 0.4;
     }
 
     const div = document.createElement('div');
@@ -520,7 +513,7 @@ const RestockGame = {
       this.updateScore(); setTimeout(()=> div.remove(), 200);
     };
     container.appendChild(div); setTimeout(()=> { if(div.parentElement) div.remove(); }, 1200);
-  }
+  },
   updateScore() { document.getElementById('restock-score').textContent = this.score; document.getElementById('restock-mistakes').textContent = this.mistakes; },
   end() { this.isOpen = false; clearInterval(this.timer); document.getElementById('restock-panel').classList.remove('show'); }
 };
@@ -619,20 +612,16 @@ class Customer {
     const y = this.y + bounce, s = this.size;
     const hx = this.x, hy = y - 12, hr = s/2.2;
 
-    // 身體發光提示：僅在櫃檯等待且尚未處理時發出黃色呼吸光
     if (this.state === 'waiting' && this.targetX === Game.width / 2 && !this.task.completed) {
-      ctx.shadowColor = '#fbbf24';
-      ctx.shadowBlur = 15 + Math.sin(Date.now() / 150) * 10;
-    } else {
-      ctx.shadowBlur = 0;
-    }
+      ctx.shadowColor = '#fbbf24'; ctx.shadowBlur = 15 + Math.sin(Date.now() / 150) * 10;
+    } else { ctx.shadowBlur = 0; }
 
     ctx.fillStyle = this.hairColor;
     if (this.hairStyle === 1) { ctx.beginPath(); ctx.moveTo(hx - hr, hy); ctx.lineTo(hx - hr - 2, hy + 16); ctx.lineTo(hx + hr + 2, hy + 16); ctx.lineTo(hx + hr, hy); ctx.fill(); }
     ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.beginPath(); ctx.ellipse(this.x, this.y + s/2 + 2, s/2, s/6, 0, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = this.color; ctx.beginPath(); ctx.roundRect(this.x - s/2, y - s/3, s, s, 10); ctx.fill();
     
-    ctx.shadowBlur = 0; // 重置陰影，避免影響其他五官繪製
+    ctx.shadowBlur = 0;
 
     ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.beginPath(); ctx.arc(this.x, y - 6, s/3, 0, Math.PI); ctx.fill();
     ctx.fillStyle = '#fce7f3'; ctx.beginPath(); ctx.arc(hx, hy, hr, 0, Math.PI * 2); ctx.fill();
@@ -650,9 +639,7 @@ class Customer {
     else if (this.hairStyle === 2) { ctx.arc(hx, hy, hr + 1, Math.PI, 0); ctx.fill(); ctx.beginPath(); ctx.arc(hx + 8, hy - 12, 6, 0, Math.PI * 2); } 
     else { ctx.arc(hx, hy - 4, hr - 0.5, Math.PI, 0); } ctx.fill();
 
-    // 繪製對話框：僅在未結帳/找包裹階段顯示，一旦去等待區即徹底隱藏
     const needsToSpeak = !this.task.completed && (this.task.step === 'pay' || this.task.step === 'find' || this.task.step === 'scan');
-    
     if (needsToSpeak && (this.state === 'waiting' || this.state === 'entering')) {
       let txt = this.task.bubble;
       ctx.font = `bold ${FONT.BUBBLE}px sans-serif`;
@@ -662,7 +649,6 @@ class Customer {
       ctx.fillStyle = 'rgba(255,255,255,0.95)'; 
       ctx.beginPath(); ctx.roundRect(bx - tw/2, by - th/2, tw, th, 8); ctx.fill();
       ctx.beginPath(); ctx.moveTo(bx - tw/2, by - 5); ctx.lineTo(bx - tw/2, by + 5); ctx.lineTo(bx - tw/2 - 8, by); ctx.fill();
-      
       ctx.fillStyle = '#1e293b'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(txt, bx, by);
     }
     ctx.globalAlpha = 1;
@@ -791,22 +777,18 @@ const TaskManager = {
     const t = JSON.parse(JSON.stringify(this.templates[Math.floor(Math.random()*this.templates.length)]));
     t.id = Date.now() + Math.random(); t.completed = false;
     
-    // 動態文案生成
     if (t.type === 'coffee') {
-      const temps = ['熱', '溫', '冰'];
-      const sizes = ['中杯', '大杯'];
-      const types = ['美式', '拿鐵'];
+      const temps = ['熱', '溫', '冰']; const sizes = ['中杯', '大杯']; const types = ['美式', '拿鐵'];
       t.coffee.temp = temps[Math.floor(Math.random() * temps.length)];
       t.coffee.size = sizes[Math.floor(Math.random() * sizes.length)];
       t.coffee.type = types[Math.floor(Math.random() * types.length)];
       t.bubble = `☕${t.coffee.size}${t.coffee.temp}${t.coffee.type}`;
     } else if (t.type === 'bento') {
-      t.microwave = Math.floor(Math.random() * 3) + 1; // 1, 2, 3 分鐘
+      t.microwave = Math.floor(Math.random() * 3) + 1;
       const emoji = t.microwave === 1 ? '🥪' : t.microwave === 2 ? '🍙' : '🍱';
       t.bubble = `${emoji}微波${t.microwave}分鐘`;
     } else if (t.type === 'package') { 
-      t.packageCode = String(Math.floor(Math.random()*900)+100); 
-      t.bubble = '📦'+t.packageCode; 
+      t.packageCode = String(Math.floor(Math.random()*900)+100); t.bubble = '📦'+t.packageCode; 
     }
     
     this.tasks.push(t); Tracker.taskAppeared(t.id, t.type); return t;
