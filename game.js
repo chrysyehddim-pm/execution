@@ -498,7 +498,15 @@ const RestockGame = {
   spawnItem() {
     if(!this.isOpen) return;
     const container = document.getElementById('restock-items');
-    const isExpired = Math.random() < 0.4;
+    
+    // 邏輯修正：確保補貨階段的「第一個物品」絕對是正常商品，消除統計延遲誤差
+    let isExpired;
+    if (this.score === 0 && this.mistakes === 0 && document.querySelectorAll('.restock-item').length === 0) {
+      isExpired = false; // 首發強制為正常商品
+    } else {
+      isExpired = Math.random() < 0.4; // 後續恢復 40% 機率為過期品
+    }
+
     const div = document.createElement('div');
     div.className = 'restock-item pop-in' + (isExpired ? ' expired' : '');
     div.style.left = (20 + Math.random()*60) + '%'; div.style.top = (20 + Math.random()*60) + '%';
@@ -512,7 +520,7 @@ const RestockGame = {
       this.updateScore(); setTimeout(()=> div.remove(), 200);
     };
     container.appendChild(div); setTimeout(()=> { if(div.parentElement) div.remove(); }, 1200);
-  },
+  }
   updateScore() { document.getElementById('restock-score').textContent = this.score; document.getElementById('restock-mistakes').textContent = this.mistakes; },
   end() { this.isOpen = false; clearInterval(this.timer); document.getElementById('restock-panel').classList.remove('show'); }
 };
